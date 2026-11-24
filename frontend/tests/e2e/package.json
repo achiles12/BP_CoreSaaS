@@ -1,0 +1,12 @@
+{
+  "name": "core-saas-e2e",
+  "private": true,
+  "description": "Browser tests of the critical flows C1, C4, C5, C6 (B12). Runs in mcr.microsoft.com/playwright:v1.65.0-noble against the compose stack.",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0"
+  }
+}

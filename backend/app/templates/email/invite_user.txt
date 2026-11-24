@@ -1,0 +1,9 @@
+Hello,
+
+{% if inviter_name %}{{ inviter_name }} invited you{% else %}You have been invited{% endif %} to join {{ org_name }} on {{ app_name }} as {{ role_key }}.
+
+To accept, open this link and choose a password:
+
+{{ link }}
+
+The invitation is valid for 7 days and can be used once.

@@ -1,0 +1,22 @@
+# pre-commit hooks (dev_tools.md). Inactive until the folder is a git repo
+# (design D4). Enable with: pip install pre-commit && pre-commit install
+# Frontend hooks (eslint, prettier) and the OpenAPI drift check arrive in B08.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.4
+    hooks:
+      - id: ruff
+        files: ^backend/
+        args: ["--fix"]
+      - id: ruff-format
+        files: ^backend/

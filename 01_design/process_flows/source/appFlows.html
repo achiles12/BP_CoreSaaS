@@ -1,0 +1,634 @@
+<!doctype html>
+<!--
+  Core SaaS application flows, drawn (01_design/app_flows.md F1–F13, as built
+  through B11, 2026-11-20). Self-contained: inline CSS + a small JS builder.
+  Rendered to ../appFlows.pdf by render.mjs (Playwright, A4 landscape).
+  Rebuild: bash 01_design/process_flows/build_appFlows.sh
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Core SaaS Application Flows</title>
+<style>
+  @page { size: A4 landscape; margin: 0; }
+  :root {
+    --ink: #1f1f1f; --mid: #6b6b6b; --soft: #9a9a9a; --line: #cfcfcf;
+    --fill: #ececec; --fill2: #f6f6f6; --paper: #fff; --accent: #2f6fd6;
+    --ok: #1d7a46; --warn: #fff4cc; --warnline: #d8b64a; --err: #b42318;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #888; font: 11px/1.35 "Helvetica Neue", Arial, sans-serif; color: var(--ink); }
+  .page { width: 1123px; height: 794px; background: var(--paper); margin: 0 auto 12px; overflow: hidden;
+          display: grid; grid-template-rows: 44px 1fr 22px; page-break-after: always; break-after: page; }
+  @media print { html, body { background: #fff; } .page { margin: 0; } }
+  .head { display: flex; align-items: center; gap: 12px; padding: 0 22px; border-bottom: 2px solid var(--ink); }
+  .head .sid { font: 700 18px/1 monospace; }
+  .head .stitle { font-size: 17px; font-weight: 600; }
+  .head .route { margin-left: auto; font: 12px monospace; color: var(--mid); }
+  .foot { display: flex; justify-content: space-between; padding: 0 22px; font-size: 9px; color: var(--soft); border-top: 1px solid var(--line); align-items: center; }
+  .body { display: grid; grid-template-columns: 1fr 260px; min-height: 0; }
+  .body.full { grid-template-columns: 1fr; }
+  .stage { padding: 12px 14px 8px 18px; min-height: 0; overflow: hidden; }
+  .panel { border-left: 1px solid var(--line); background: var(--fill2); padding: 12px 14px; overflow: hidden; font-size: 10px; }
+  .panel h4 { margin: 9px 0 3px; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--mid); }
+  .panel h4:first-child { margin-top: 0; }
+  .panel ul { margin: 0; padding-left: 14px; } .panel li { margin: 1px 0; }
+  .panel code, .mono { font-family: monospace; font-size: 9.5px; }
+  .delta { background: var(--warn); border: 1px solid var(--warnline); border-radius: 4px; padding: 5px 7px; }
+  .cover { padding: 26px 30px; display: grid; grid-template-columns: 1fr 1.1fr; gap: 28px; }
+  .cover h1 { font-size: 30px; margin: 0 0 4px; } .cover h2 { font-size: 16px; font-weight: 400; margin: 0 0 14px; color: var(--mid); }
+  .cover p { margin: 0 0 10px; }
+  table.idx { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+  table.idx th, table.idx td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.idx th { font-size: 9px; text-transform: uppercase; color: var(--mid); letter-spacing: .06em; }
+  .tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font: 700 9px monospace; color: #fff; background: var(--ok); }
+  .tag.drop { background: #888; }
+  .legend { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; font-size: 10.5px; margin-top: 8px; }
+  svg text { font-family: "Helvetica Neue", Arial, sans-serif; }
+</style>
+</head>
+<body>
+<script>
+"use strict";
+const DATE = "2026-11-20";
+const pages = [];
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/* ------------------------------------------------------------ participants */
+// One lane per participant. `kind` picks the header colour.
+const P = {
+  user:    { label: "User", sub: "browser", kind: "person" },
+  owner:   { label: "Owner / Admin", sub: "browser", kind: "person" },
+  invitee: { label: "Invitee", sub: "browser + mail", kind: "person" },
+  fe:      { label: "Frontend", sub: "Next.js :3200", kind: "fe" },
+  be:      { label: "API", sub: "FastAPI :8200", kind: "be" },
+  db:      { label: "Postgres", sub: "public + tenant_<slug>", kind: "store" },
+  redis:   { label: "Redis", sub: "rate limit · cache · queue", kind: "store" },
+  w:       { label: "Worker", sub: "arq jobs", kind: "be" },
+  s3:      { label: "RustFS", sub: "S3 :9000 (LAN IP)", kind: "store" },
+  mail:    { label: "Mailpit", sub: "SMTP :1025 · UI :8025", kind: "ext" },
+};
+const KIND = {
+  person: ["#fff", "#1f1f1f"], fe: ["#e8f0fd", "#2f6fd6"], be: ["#eef7f1", "#1d7a46"],
+  store: ["#f4efe6", "#8a6a2f"], ext: ["#f2f2f2", "#555"],
+};
+
+/* -------------------------------------------------------- text wrapping */
+const CHAR_W = 5.3; // ~px per char at 10px Helvetica
+function wrap(text, maxPx) {
+  const max = Math.max(8, Math.floor(maxPx / CHAR_W));
+  const out = [];
+  for (const para of String(text).split("\n")) {
+    let line = "";
+    for (const w of para.split(" ")) {
+      if ((line + " " + w).trim().length > max && line) { out.push(line); line = w; }
+      else line = (line + " " + w).trim();
+    }
+    out.push(line);
+  }
+  return out;
+}
+const tspans = (lines, x, anchor = "middle") =>
+  lines.map((l, i) => `<tspan x="${x}" dy="${i ? 11 : 0}" text-anchor="${anchor}">${esc(l)}</tspan>`).join("");
+
+/* ------------------------------------------------------ sequence diagram */
+// A "work" box may be wider than its lane (it overlaps the neighbours' life lines).
+const SELF_W = (laneW) => Math.min(laneW * 1.45, 230);
+// steps: {f,t,m}   message (solid; r:true = reply, dashed)
+//        {self,m}  work inside one participant
+//        {note,over:[a,b]} or {note,at:a}  yellow note
+//        {alt}     fragment divider ("alt"/"else"/"loop"/"opt" via kind)
+function seq(lanes, steps, W = 820, H = 690) {
+  const left = 6, laneW = (W - 2 * left) / lanes.length, top = 44;
+  const xi = (id) => {
+    const i = lanes.indexOf(id);
+    if (i < 0) throw new Error(`lane ${id} not in ${lanes}`);
+    return left + laneW * (i + 0.5);
+  };
+  // 1) measure every step
+  const items = steps.map((s) => {
+    if (s.alt !== undefined) return { s, h: 20 };
+    if (s.note !== undefined) {
+      const [a, b] = s.over ?? [s.at, s.at];
+      const width = Math.abs(xi(b) - xi(a)) + laneW * 0.9;
+      const lines = wrap(s.note, width - 12);
+      return { s, lines, width, h: lines.length * 11 + 12 };
+    }
+    if (s.self !== undefined) {
+      const lines = wrap(s.m, SELF_W(laneW) - 14);
+      return { s, lines, h: Math.max(26, lines.length * 11 + 14) };
+    }
+    const span = Math.abs(xi(s.t) - xi(s.f));
+    const lines = wrap(s.m, Math.max(span - 14, laneW * 1.6));
+    return { s, lines, h: lines.length * 11 + 19 };
+  });
+  let total = items.reduce((a, b) => a + b.h, 0);
+  const scale = Math.min(1.35, (H - top - 10) / total); // spread short flows, squeeze long ones
+  if (scale < 0.82) throw new Error(`diagram too tall (${Math.round(total)}px)`);
+  let y = top + 8, n = 0, out = [];
+  // lane heads + life lines
+  lanes.forEach((id) => {
+    const p = P[id], [bg, fg] = KIND[p.kind], x = xi(id), bw = laneW - 10;
+    out.push(`<line x1="${x}" y1="${top}" x2="${x}" y2="${H - 4}" stroke="#bbb" stroke-dasharray="3 3"/>`);
+    out.push(`<rect x="${x - bw / 2}" y="2" width="${bw}" height="36" rx="5" fill="${bg}" stroke="${fg}" stroke-width="1.4"/>
+      <text x="${x}" y="17" font-size="11" font-weight="700" text-anchor="middle" fill="${fg}">${esc(p.label)}</text>
+      <text x="${x}" y="30" font-size="8.5" text-anchor="middle" fill="#666">${esc(p.sub)}</text>`);
+  });
+  for (const it of items) {
+    const s = it.s, h = it.h * scale;
+    if (s.alt !== undefined) {
+      const kind = s.kind ?? "alt";
+      out.push(`<line x1="${left}" y1="${y + h / 2}" x2="${W - left}" y2="${y + h / 2}" stroke="#999" stroke-dasharray="6 3"/>
+        <rect x="${left}" y="${y + h / 2 - 8}" width="${Math.min(W - 2 * left, esc(s.alt).length * 5.6 + 46)}" height="16" fill="#fff" stroke="#999"/>
+        <text x="${left + 5}" y="${y + h / 2 + 4}" font-size="9.5"><tspan font-weight="700">${kind}</tspan> ${esc(s.alt)}</text>`);
+    } else if (s.note !== undefined) {
+      const [a, b] = s.over ?? [s.at, s.at];
+      const cx = (xi(a) + xi(b)) / 2, x0 = cx - it.width / 2;
+      out.push(`<rect x="${x0}" y="${y + 3}" width="${it.width}" height="${h - 6}" rx="3" fill="#fff4cc" stroke="#d8b64a"/>
+        <text x="${cx}" y="${y + 3 + (h - 6 - it.lines.length * 11) / 2 + 9}" font-size="9.5">${tspans(it.lines, cx)}</text>`);
+    } else if (s.self !== undefined) {
+      const x = xi(s.self), bw = SELF_W(laneW);
+      n++;
+      out.push(`<rect x="${x - bw / 2}" y="${y + 3}" width="${bw}" height="${h - 6}" rx="4" fill="${s.err ? "#fdecea" : "#fafafa"}" stroke="${s.err ? "#b42318" : "#999"}"/>
+        ${num(x - bw / 2, y + 3, n)}
+        <text x="${x}" y="${y + 3 + (h - 6 - it.lines.length * 11) / 2 + 9}" font-size="9.5" fill="${s.err ? "#b42318" : "#1f1f1f"}">${tspans(it.lines, x)}</text>`);
+    } else {
+      const x1 = xi(s.f), x2 = xi(s.t), dir = x2 > x1 ? 1 : -1, ay = y + h - 7;
+      const color = s.err ? "#b42318" : s.r ? "#555" : "#1f1f1f";
+      n++;
+      out.push(`<line x1="${x1}" y1="${ay}" x2="${x2 - dir * 3}" y2="${ay}" stroke="${color}" stroke-width="1.3" ${s.r ? 'stroke-dasharray="5 3"' : ""} marker-end="url(#${s.r ? "ah2" : s.err ? "ahE" : "ah"})"/>
+        ${num(Math.min(x1, x2) - 9, ay - 6, n, true)}
+        <text x="${(x1 + x2) / 2}" y="${ay - 9 - (it.lines.length - 1) * 11}" font-size="9.5" fill="${color}">${tspans(it.lines, (x1 + x2) / 2)}</text>`);
+    }
+    y += h;
+  }
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    <defs>${["ah:#1f1f1f", "ah2:#555", "ahE:#b42318"].map((d) => { const [id, c] = d.split(":"); return `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${c}"/></marker>`; }).join("")}</defs>
+    ${out.join("\n")}</svg>`;
+}
+function num(x, y, n, onArrow = false) {
+  const cx = onArrow ? x : x + 1, cy = onArrow ? y + 6 : y + 1;
+  return `<circle cx="${cx}" cy="${cy}" r="7" fill="#2f6fd6"/><text x="${cx}" y="${cy + 3}" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">${n}</text>`;
+}
+
+/* ------------------------------------------------- pipeline (F11–F13) */
+// cols: [{title, kind, steps: [text | {t, sub}]}], drawn as boxes with arrows down.
+function pipe(cols, W = 820, H = 690) {
+  const gap = 18, cw = (W - gap * (cols.length - 1)) / cols.length;
+  let out = [];
+  cols.forEach((c, ci) => {
+    const x = ci * (cw + gap), [bg, fg] = KIND[c.kind ?? "be"];
+    out.push(`<rect x="${x}" y="2" width="${cw}" height="30" rx="5" fill="${bg}" stroke="${fg}" stroke-width="1.4"/>
+      <text x="${x + cw / 2}" y="21" font-size="11.5" font-weight="700" text-anchor="middle" fill="${fg}">${esc(c.title)}</text>`);
+    const boxes = c.steps.map((s) => (typeof s === "string" ? { t: s } : s));
+    const measured = boxes.map((b) => {
+      const tl = wrap(b.t, cw - 34), sl = b.sub ? wrap(b.sub, cw - 34) : [];
+      return { b, tl, sl, h: 14 + tl.length * 12 + sl.length * 11 };
+    });
+    const avail = H - 46, need = measured.reduce((a, m) => a + m.h, 0) + 16 * (measured.length - 1);
+    const sp = Math.max(10, Math.min(28, (avail - need + 16 * (measured.length - 1)) / Math.max(1, measured.length - 1)));
+    let y = 44;
+    measured.forEach((m, i) => {
+      out.push(`<rect x="${x + 4}" y="${y}" width="${cw - 8}" height="${m.h}" rx="5" fill="${m.b.err ? "#fdecea" : "#fff"}" stroke="${m.b.err ? "#b42318" : "#999"}"/>
+        ${num(x + 6, y + 2, i + 1)}
+        <text x="${x + 22}" y="${y + 15}" font-size="10" font-weight="600">${tspans(m.tl, x + 22, "start")}</text>
+        ${m.sl.length ? `<text x="${x + 22}" y="${y + 15 + m.tl.length * 12}" font-size="9" fill="#666" font-family="monospace">${tspans(m.sl, x + 22, "start")}</text>` : ""}`);
+      if (i < measured.length - 1)
+        out.push(`<line x1="${x + cw / 2}" y1="${y + m.h}" x2="${x + cw / 2}" y2="${y + m.h + sp - 2}" stroke="#1f1f1f" stroke-width="1.3" marker-end="url(#ah)"/>`);
+      y += m.h + sp;
+    });
+    if (y > H + 2) throw new Error(`pipeline column "${c.title}" too tall`);
+  });
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1f1f1f"/></marker></defs>${out.join("\n")}</svg>`;
+}
+
+/* ----------------------------------------------------------- page frame */
+function panel(p) {
+  const list = (h, xs) => (xs && xs.length ? `<h4>${h}</h4><ul>${xs.map((x) => `<li>${x}</li>`).join("")}</ul>` : "");
+  return `<div class="panel">
+    <h4>Status</h4><span class="tag">BUILT ${p.batch}</span>
+    ${list("Trigger", p.trigger)}${list("Permissions", p.perm)}${list("API", (p.api || []).map((a) => `<code>${esc(a)}</code>`))}
+    ${list("Rules and edge cases", p.rules)}
+    ${p.delta ? `<h4>As built vs app_flows.md</h4><div class="delta">${p.delta}</div>` : ""}
+  </div>`;
+}
+function page({ id, title, route = "", stage, full = false, ...p }) {
+  pages.push(`<section class="page" data-id="${id}">
+    <div class="head"><span class="sid">${id}</span><span class="stitle">${esc(title)}</span><span class="route">${esc(route)}</span></div>
+    <div class="body ${full ? "full" : ""}"><div class="stage">${stage}</div>${full ? "" : panel(p)}</div>
+    <div class="foot"><span>Core SaaS scaffold · application flows (01_design/app_flows.md) · as built through B11</span><span>${DATE} · page {{N}} of {{T}}</span></div>
+  </section>`);
+}
+
+/* ================================================================ pages */
+const INDEX = [
+  ["F1", "Login and role-based landing", "/login → /post-login → /home/&lt;role&gt;", "built"],
+  ["F2", "Session refresh", "any 401", "built"],
+  ["F3", "Invite and accept", "/users → email → /accept-invite", "built"],
+  ["F4", "Forgot / reset password", "/forgot-password → /reset-password", "built"],
+  ["F5", "Switch organization", "one organization per user (B04 D1)", "dropped"],
+  ["F6", "Upload a file", "/files → Upload", "built"],
+  ["F7", "Download (and delete) a file", "/files row menu", "built"],
+  ["F8", "Search and filter", "/search · list filters", "built"],
+  ["F9", "Export", "Export on Files / Users / Items", "built"],
+  ["F10", "Manage roles", "/users → Change roles · seeds", "built"],
+  ["F11", "Platform admin tasks", "CLI · /platform", "built"],
+  ["F12", "Audit read", "host: logs/audit/audit.log", "built"],
+  ["F13", "Add a business module", "developer: copy _template", "built"],
+];
+
+/* 1 cover */
+pages.push(`<section class="page" data-id="COVER">
+  <div class="head"><span class="sid">—</span><span class="stitle">Application flows</span><span class="route">Phase 1 scaffold</span></div>
+  <div class="cover">
+    <div>
+      <h1>Core SaaS</h1><h2>Application flows, drawn: Phase 1 scaffold</h2>
+      <p>One flow per page, from <code>01_design/app_flows.md</code>. Each page is a numbered sequence across the parts of the system that take part; the side panel lists the trigger, the permissions, the API calls and the rules.</p>
+      <p>Flows are drawn <b>as built</b> through B11 (${DATE}). Where the build differs from <code>app_flows.md</code> (user decisions, or detail added while building), the yellow box on the page says so. The same flows in text, as built: <code>01_design/app_flow_v2.md</code>.</p>
+      <div class="legend">
+        <svg width="70" height="12"><line x1="0" y1="6" x2="62" y2="6" stroke="#1f1f1f" stroke-width="1.3" marker-end="url(#lg1)"/><defs><marker id="lg1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z"/></marker></defs></svg><span>request / call</span>
+        <svg width="70" height="12"><line x1="0" y1="6" x2="62" y2="6" stroke="#555" stroke-width="1.3" stroke-dasharray="5 3" marker-end="url(#lg2)"/><defs><marker id="lg2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker></defs></svg><span>answer</span>
+        <svg width="70" height="12"><line x1="0" y1="6" x2="62" y2="6" stroke="#b42318" stroke-width="1.3" marker-end="url(#lg3)"/><defs><marker id="lg3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#b42318"/></marker></defs></svg><span>error / refusal path</span>
+        <svg width="70" height="14"><rect x="1" y="1" width="62" height="12" rx="3" fill="#fafafa" stroke="#999"/></svg><span>work done inside one part</span>
+        <svg width="70" height="14"><rect x="1" y="1" width="62" height="12" rx="3" fill="#fff4cc" stroke="#d8b64a"/></svg><span>note</span>
+        <svg width="70" height="14"><line x1="0" y1="7" x2="62" y2="7" stroke="#999" stroke-dasharray="6 3"/></svg><span><b>alt</b> / <b>loop</b> / <b>opt</b>: alternative path, repetition, optional step</span>
+        <svg width="70" height="16"><circle cx="8" cy="8" r="7" fill="#2f6fd6"/><text x="8" y="11" font-size="8.5" fill="#fff" font-weight="700" text-anchor="middle">1</text></svg><span>step number, in order</span>
+      </div>
+    </div>
+    <div><table class="idx"><tr><th>Page</th><th>ID</th><th>Flow</th><th>Where</th><th>Status</th></tr>
+      ${(() => { let n = 3; return INDEX.map((r) => `<tr><td>${r[3] === "dropped" ? "—" : n++}</td><td class="mono">${r[0]}</td><td>${r[1]}</td><td class="mono" style="font-size:9.5px">${r[2]}</td><td><span class="tag ${r[3] === "dropped" ? "drop" : ""}">${r[3].toUpperCase()}</span></td></tr>`).join(""); })()}
+    </table>
+    <p class="mono" style="margin-top:12px;color:var(--mid);font-size:9.5px">Source: 01_design/process_flows/source/appFlows.html · rebuild: bash 01_design/process_flows/build_appFlows.sh</p></div>
+  </div>
+  <div class="foot"><span>Core SaaS scaffold · application flows (01_design/app_flows.md) · as built through B11</span><span>${DATE} · page {{N}} of {{T}}</span></div>
+</section>`);
+
+/* 2 system map */
+(() => {
+  const B = (x, y, w, h, kind, t, sub) => { const [bg, fg] = KIND[kind]; return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="7" fill="${bg}" stroke="${fg}" stroke-width="1.6"/><text x="${x + w / 2}" y="${y + h / 2 - 3}" font-size="13" font-weight="700" text-anchor="middle" fill="${fg}">${t}</text><text x="${x + w / 2}" y="${y + h / 2 + 12}" font-size="9.5" text-anchor="middle" fill="#555">${sub}</text>`; };
+  const A = (x1, y1, x2, y2, l, lx, ly, dash) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#1f1f1f" stroke-width="1.4" ${dash ? 'stroke-dasharray="5 3"' : ""} marker-end="url(#ma)"/>${l ? `<text x="${lx ?? (x1 + x2) / 2}" y="${ly ?? (y1 + y2) / 2 - 5}" font-size="9.5" text-anchor="middle" fill="#444">${l}</text>` : ""}`;
+  const L = (pts, l, lx, ly, dash) => `<polyline points="${pts}" fill="none" stroke="#1f1f1f" stroke-width="1.4" ${dash ? 'stroke-dasharray="5 3"' : ""} marker-end="url(#ma)"/>${l ? `<text x="${lx}" y="${ly}" font-size="9.5" fill="#444">${l}</text>` : ""}`;
+  const svg = `<svg width="820" height="690" viewBox="0 0 820 690"><defs><marker id="ma" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z"/></marker></defs>
+    ${B(20, 40, 150, 60, "person", "User", "browser on the LAN")}
+    ${B(250, 40, 170, 60, "fe", "Frontend", "Next.js :3200")}
+    ${B(500, 40, 170, 60, "be", "API", "FastAPI :8200")}
+    ${B(700, 40, 115, 60, "store", "Postgres", "public + tenant_*")}
+    ${B(20, 250, 150, 60, "person", "Developer", "shell · CLI · DBeaver")}
+    ${B(260, 250, 160, 60, "store", "Redis", "limits · cache · queue")}
+    ${B(500, 250, 170, 60, "be", "Worker", "email · export · cleanup")}
+    ${B(700, 250, 115, 60, "ext", "Mailpit", "SMTP · UI :8025")}
+    ${B(250, 440, 170, 60, "store", "RustFS", "S3 :9000 · presigned")}
+    ${B(500, 440, 170, 60, "ext", "Audit log", "logs/audit/audit.log")}
+    ${A(170, 70, 248, 70)}<text x="176" y="62" font-size="9.5" fill="#444">pages</text>
+    ${A(420, 70, 498, 70)}<text x="424" y="62" font-size="9.5" fill="#444">/api/* + cookies</text><text x="430" y="86" font-size="9.5" fill="#444">X-Tenant</text>
+    ${A(670, 70, 698, 70)}<text x="672" y="62" font-size="9.5" fill="#444">SQL</text>
+    ${A(540, 100, 400, 248)}<text x="482" y="160" font-size="9.5" fill="#444">rate limits, permission</text><text x="482" y="172" font-size="9.5" fill="#444">cache, enqueue jobs</text>
+    ${A(420, 280, 498, 280)}<text x="440" y="272" font-size="9.5" fill="#444">jobs</text>
+    ${A(670, 255, 740, 102)}<text x="712" y="190" font-size="9.5" fill="#444">SQL</text>
+    ${A(670, 290, 698, 290)}<text x="672" y="320" font-size="9.5" fill="#444">email</text>
+    ${A(540, 310, 400, 438)}<text x="476" y="390" font-size="9.5" fill="#444">export files</text>
+    ${A(150, 100, 300, 438)}<text x="282" y="370" font-size="9.5" fill="#444">presigned PUT / GET</text><text x="282" y="382" font-size="9.5" fill="#444">(upload, download:</text><text x="282" y="394" font-size="9.5" fill="#444">straight to RustFS)</text>
+    ${L("685,100 685,470 672,470", "one line", 690, 420, true)}<text x="690" y="432" font-size="9.5" fill="#444">per write</text>
+    ${L("170,265 500,96", "", 0, 0, true)}<text x="262" y="150" font-size="9.5" fill="#444">make cli … (create-tenant,</text><text x="262" y="162" font-size="9.5" fill="#444">migrate, sync-permissions)</text>
+    ${L("95,310 95,525 585,525 585,503", "reads audit.log (F12)", 110, 518, true)}
+    <text x="20" y="575" font-size="12" font-weight="700">Which flow touches what</text>
+    ${[["F1 F2", "Frontend · API · Postgres · Redis"], ["F3 F4", "+ Worker · Mailpit"], ["F6 F7", "+ RustFS (the browser talks to it directly)"], ["F8", "API · Postgres (full text + trigram)"], ["F9", "API · Worker · Postgres · RustFS (+ notification)"]].map((r, i) => `<text x="20" y="${595 + i * 16}" font-size="10.5"><tspan font-weight="700">${r[0]}</tspan><tspan x="90">${r[1]}</tspan></text>`).join("")}
+    <text x="420" y="595" font-size="10.5"><tspan font-weight="700">F10–F13</tspan><tspan x="490">developer side: CLI, migrations,</tspan></text><text x="490" y="611" font-size="10.5">module copy, audit file</text>
+  </svg>`;
+  page({ id: "MAP", title: "System map: the parts every flow uses", route: "docker compose (dev)", stage: svg, full: true });
+})();
+
+/* F1 */
+page({
+  id: "F1", title: "Login and role-based landing", route: "/login → /post-login → /home/<role>", batch: "B03 · B09",
+  trigger: ["User opens <code>/login</code> (or any app page while signed out → <code>/login?next=</code>)"],
+  perm: ["none to log in", "landing page = top role's <code>landing_path</code>"],
+  api: ["POST /auth/login", "GET /me"],
+  rules: ["Wrong password, unknown email and inactive account all get the same 401", "5 attempts / min per IP + email (429)", "Unverified email: login works; tenant data answers 403 <code>email_not_verified</code> → banner with Resend", "A user on another role's page is sent to their own"],
+  delta: "No org picker and no <code>last_org</code> (spec step 4–5): <b>one organization per user</b> (B04 D1). <code>/me</code> returns the org without <code>X-Tenant</code>. No org → <code>/no-organization</code>.",
+  stage: seq(["user", "fe", "be", "redis", "db"], [
+    { f: "user", t: "fe", m: "open /login, enter email + password" },
+    { self: "fe", m: "Zod: email format, password present" },
+    { f: "fe", t: "be", m: "POST /auth/login" },
+    { f: "be", t: "redis", m: "count attempt (5 / min per IP + email)" },
+    { f: "be", t: "db", m: "user by email; Argon2 verify; is_active" },
+    { alt: "wrong password · unknown email · inactive", kind: "alt" },
+    { f: "be", t: "fe", m: "401 “Invalid email or password” · audit auth.login (result denied)", err: true },
+    { alt: "credentials ok", kind: "else" },
+    { f: "be", t: "db", m: "new refresh-token family; last_login_at" },
+    { f: "be", t: "fe", m: "200 + cookies: access_token (15 min), refresh_token (14 d, path /api/auth) · audit auth.login", r: true },
+    { f: "fe", t: "fe", m: "", hidden: true },
+    { self: "fe", m: "go to /post-login (keeps ?next=)" },
+    { f: "fe", t: "be", m: "GET /me (no X-Tenant needed)" },
+    { f: "be", t: "db", m: "membership (one org), roles, permissions" },
+    { f: "be", t: "fe", m: "me: user, org, roles, permissions, landing_path", r: true },
+    { self: "fe", m: "target = next= if allowed, else landing_path; no org → /no-organization; platform admin → /platform" },
+    { f: "fe", t: "user", m: "/home/<role>: sidebar + cards filtered by permission" },
+  ].filter((s) => !s.hidden)),
+});
+
+/* F2 */
+page({
+  id: "F2", title: "Session refresh", route: "any API call answering 401", batch: "B03 · B08",
+  trigger: ["Access cookie expired (15 min) or missing"],
+  perm: ["valid refresh cookie"],
+  api: ["POST /auth/refresh"],
+  rules: ["All 401s at the same moment share ONE refresh (single-flight): a second use of a rotated token would look like theft", "Reuse of a revoked refresh token revokes the whole family and audits <code>auth.refresh_reuse</code>", "/auth/login, /refresh, /logout never trigger a refresh"],
+  delta: "As specified. Adds the reuse detection of B03 D10 and the session-expired toast.",
+  stage: seq(["user", "fe", "be", "db"], [
+    { f: "fe", t: "be", m: "any call, e.g. GET /files" },
+    { f: "be", t: "fe", m: "401 (access token expired)", r: true },
+    { self: "fe", m: "start one shared refresh; other 401s wait for it" },
+    { f: "fe", t: "be", m: "POST /auth/refresh (refresh_token cookie)" },
+    { f: "be", t: "db", m: "token valid? revoke it, issue the next one in the same family" },
+    { alt: "refresh ok", kind: "alt" },
+    { f: "be", t: "fe", m: "200 + new cookies", r: true },
+    { f: "fe", t: "be", m: "retry the original call once" },
+    { f: "be", t: "fe", m: "200 data", r: true },
+    { alt: "token revoked already (stolen / replayed)", kind: "else" },
+    { f: "be", t: "db", m: "revoke the whole family · audit auth.refresh_reuse", err: true },
+    { f: "be", t: "fe", m: "401", err: true },
+    { alt: "refresh fails (expired, revoked, network)", kind: "else" },
+    { self: "fe", m: "clear session state; toast “session expired”", err: true },
+    { f: "fe", t: "user", m: "redirect /login?next=<current page>", err: true },
+  ]),
+});
+
+/* F3 */
+page({
+  id: "F3", title: "Invite and accept", route: "/users → Invite → email → /accept-invite?token=", batch: "B04 · B09 · B10",
+  trigger: ["Owner/Admin: <b>Users → Invite</b> (email, role)"],
+  perm: ["<code>users:invite</code> (owner, admin)", "cannot invite above your own role"],
+  api: ["POST /users/invite", "GET /invitations · DELETE /invitations/{id}", "POST /auth/invitation", "POST /auth/accept-invite"],
+  rules: ["Already a member / already invited → 409, shown in the dialog", "Token stored as a hash; valid 7 days; single use", "An account that already belongs to an org cannot accept (409)", "Email retries 30 s / 2 min / 10 min, then audit <code>email.failed</code>"],
+  delta: "As specified, plus Revoke on the <b>Pending invitations</b> tab (B10). Accepting marks the email verified.",
+  stage: seq(["owner", "fe", "be", "db", "w", "mail", "invitee"], [
+    { f: "owner", t: "fe", m: "Users → Invite: email + role" },
+    { f: "fe", t: "be", m: "POST /users/invite {email, role_key}" },
+    { self: "be", m: "users:invite; rank check; not a member / not invited (409)" },
+    { f: "be", t: "db", m: "invitation (token hash, expires 7 d)" },
+    { f: "be", t: "w", m: "enqueue send_email(invite) via Redis · audit users.invite" },
+    { f: "be", t: "fe", m: "201 → toast; Pending invitations (n)", r: true },
+    { f: "w", t: "mail", m: "render + SMTP send (retries)" },
+    { f: "mail", t: "invitee", m: "email with /accept-invite?token=" },
+    { f: "invitee", t: "fe", m: "open the link" },
+    { f: "fe", t: "be", m: "POST /auth/invitation {token}" },
+    { f: "be", t: "fe", m: "org, role, does the account exist?", r: true },
+    { f: "invitee", t: "fe", m: "new: name + password · existing (no org): current password" },
+    { f: "fe", t: "be", m: "POST /auth/accept-invite" },
+    { f: "be", t: "db", m: "user (or attach), membership, user_roles, invitation accepted, email verified · audit auth.invite_accepted" },
+    { f: "be", t: "fe", m: "200 → /login", r: true },
+    { opt: true, alt: "owner revokes before acceptance: DELETE /invitations/{id} → link stops working", kind: "opt" },
+  ]),
+});
+
+/* F4 */
+page({
+  id: "F4", title: "Forgot / reset password", route: "/forgot-password → email → /reset-password?token=", batch: "B03 · B09",
+  trigger: ["“Forgot password?” on the login page"],
+  perm: ["none (public pages)"],
+  api: ["POST /auth/forgot-password", "POST /auth/reset-password"],
+  rules: ["Always 202, whether or not the email exists (no account discovery)", "Rate limited (5 / min per IP + email)", "Token single use; password rule 12+ chars, letters and numbers", "Reset revokes every session of the user"],
+  delta: "As specified.",
+  stage: seq(["user", "fe", "be", "db", "w", "mail"], [
+    { f: "user", t: "fe", m: "/forgot-password: email" },
+    { f: "fe", t: "be", m: "POST /auth/forgot-password" },
+    { alt: "email belongs to an account", kind: "opt" },
+    { f: "be", t: "db", m: "reset token (hash, short life)" },
+    { f: "be", t: "w", m: "enqueue send_email(reset)" },
+    { f: "w", t: "mail", m: "SMTP send" },
+    { alt: "", kind: "end" },
+    { f: "be", t: "fe", m: "202 always: “If the account exists, an email is on its way”", r: true },
+    { f: "mail", t: "user", m: "link /reset-password?token=" },
+    { f: "user", t: "fe", m: "open link, new password twice" },
+    { self: "fe", m: "Zod: 12+, letter, digit, match" },
+    { f: "fe", t: "be", m: "POST /auth/reset-password {token, new_password}" },
+    { f: "be", t: "db", m: "token valid + unused → new Argon2 hash; revoke all refresh tokens · audit auth.password_reset" },
+    { f: "be", t: "fe", m: "204 → /login", r: true },
+    { alt: "token expired / used → 400, “request a new link”", kind: "else" },
+  ]),
+});
+
+/* F6 */
+page({
+  id: "F6", title: "Upload a file", route: "/files → Upload", batch: "B05 · B10",
+  trigger: ["<b>Upload</b> on /files: drag and drop or browse, several files"],
+  perm: ["<code>files:write</code> (owner … staff); the button is hidden without it"],
+  api: ["POST /files/presign-upload", "PUT <presigned RustFS URL>", "POST /files/{id}/confirm"],
+  rules: ["Checked in the browser first: empty, &gt; MAX_UPLOAD_MB (50), type not allowed (e.g. .md has no browser type)", "Server checks again: 413 / 415", "The PUT must carry the signed Content-Type", "Files go one after another, one progress bar each"],
+  delta: "As specified. Progress comes from XHR (fetch cannot report upload progress). A cancelled or failed PUT leaves a <code>pending</code> row that J04 removes after 24 h.",
+  stage: seq(["user", "fe", "be", "db", "s3"], [
+    { f: "user", t: "fe", m: "Upload → drop files" },
+    { self: "fe", m: "validateFile: size, type, not empty" },
+    { alt: "refused in the browser → message on that file, nothing sent", kind: "alt" },
+    { alt: "file ok", kind: "else" },
+    { f: "fe", t: "be", m: "POST /files/presign-upload {name, mime_type, size_bytes}" },
+    { self: "be", m: "files:write; 413 too large, 415 type" },
+    { f: "be", t: "db", m: "files row: status pending" },
+    { f: "be", t: "fe", m: "file_id, upload_url (15 min), signed headers", r: true },
+    { f: "fe", t: "s3", m: "XHR PUT bytes straight to RustFS (progress bar)" },
+    { f: "s3", t: "fe", m: "200", r: true },
+    { f: "fe", t: "be", m: "POST /files/{id}/confirm" },
+    { f: "be", t: "s3", m: "HEAD object: exists, size matches" },
+    { f: "be", t: "db", m: "status active · audit files.upload" },
+    { f: "be", t: "fe", m: "200 → “Done”, list refreshes, toast", r: true },
+    { note: "PUT failed / cancelled → row stays pending → J04 (03:30) deletes it after 24 h", over: ["fe", "s3"] },
+  ]),
+});
+
+/* F7 */
+page({
+  id: "F7", title: "Download (and delete) a file", route: "/files row menu · search hit · landing card", batch: "B05 · B10",
+  trigger: ["Row menu <b>⋯ → Download</b>, a file hit in Search, or a file on a landing card"],
+  perm: ["download: <code>files:read</code>", "delete: <code>files:delete</code> (owner, admin, manager)"],
+  api: ["GET /files/{id}/download-url", "GET <presigned RustFS URL>", "DELETE /files/{id}"],
+  rules: ["Link lives 60 s and saves under the original name (Content-Disposition)", "Delete is soft: the row disappears now, J04 removes the object", "Another tenant's file id → 404"],
+  delta: "No <code>files.download</code> audit line (the optional <code>AUDIT_READS</code> switch was not built). Delete added to the flow (B05/B10).",
+  stage: seq(["user", "fe", "be", "db", "s3"], [
+    { f: "user", t: "fe", m: "⋯ → Download" },
+    { f: "fe", t: "be", m: "GET /files/{id}/download-url" },
+    { f: "be", t: "db", m: "files:read; active file in this tenant (else 404)" },
+    { f: "be", t: "fe", m: "url (60 s)", r: true },
+    { f: "fe", t: "s3", m: "browser GET the presigned URL" },
+    { f: "s3", t: "user", m: "file saved under its original name", r: true },
+    { alt: "delete (files:delete only)", kind: "opt" },
+    { f: "user", t: "fe", m: "⋯ → Delete → confirm “Delete “Q3-report.pdf”?”" },
+    { f: "fe", t: "be", m: "DELETE /files/{id}" },
+    { f: "be", t: "db", m: "status deleted · audit files.delete" },
+    { f: "be", t: "fe", m: "204 → toast, row gone", r: true },
+    { note: "J04 cleanup (03:30 daily) deletes the object from RustFS and the row", over: ["db", "s3"] },
+  ]),
+});
+
+/* F8 */
+page({
+  id: "F8", title: "Search and filter", route: "/search?q=&types= · lists ?q=&filter[...]&sort=&page=", batch: "B06 · B07 · B10",
+  trigger: ["Search page or the landing search box", "Search box, filters, sort and pager on any list"],
+  perm: ["<code>search:use</code>; each type also needs its read key (<code>files:read</code>, <code>items:read</code>)"],
+  api: ["GET /search", "GET /files · /users · /items with q, filter[...], sort, page"],
+  rules: ["Typing waits 300 ms, then writes the URL; the URL is the state (shareable, survives reload)", "Fewer than 2 characters: no request", "Unknown type, field or value → 422 naming what is allowed", "Code-like query (mostly digits, e.g. INV-2026-0412): exact match only"],
+  delta: "Typo match uses <code>word_similarity &gt; 0.5</code> instead of <code>similarity &gt; 0.3</code> (B07); code-like queries skip it (user decision 2026-11-20). Snippets are plain text; words are highlighted in the browser.",
+  stage: seq(["user", "fe", "be", "db"], [
+    { alt: "global search", kind: "alt" },
+    { f: "user", t: "fe", m: "type in Search (debounce 300 ms) → URL ?q=" },
+    { self: "fe", m: "q < 2 chars → hint, no request" },
+    { f: "fe", t: "be", m: "GET /search?q=report&types=files,items" },
+    { self: "be", m: "drop types the user cannot read; unknown type → 422" },
+    { f: "be", t: "db", m: "per type: full text (simple) OR typo match; UNION; rank by score" },
+    { f: "be", t: "fe", m: "hits {type, id, title, snippet, score}", r: true },
+    { self: "fe", m: "group by type, highlight words" },
+    { f: "fe", t: "user", m: "file → download (F7) · item → /items/{id}" },
+    { alt: "list filters (Files, Users, Items)", kind: "else" },
+    { f: "user", t: "fe", m: "pick Type, Status, Mine only, dates, page" },
+    { self: "fe", m: "URL updated (each change builds on the last one)" },
+    { f: "fe", t: "be", m: "GET /files?q=…&filter[mime_type]=…&filter[created_at][gte]=…&page=2" },
+    { self: "be", m: "ListSpec: only named fields; bad value → 422" },
+    { f: "be", t: "fe", m: "{items, total, page, page_size}", r: true },
+  ]),
+});
+
+/* F9 */
+page({
+  id: "F9", title: "Export", route: "Export button on Files · Users · Items", batch: "B07 · B10",
+  trigger: ["<b>Export</b> on a list → CSV or Excel"],
+  perm: ["<code>export:run</code> (owner, admin, manager) AND the list's read key"],
+  api: ["POST /exports", "GET /exports/{id} (poll)", "GET /exports (recent 5)", "GET <presigned RustFS URL>"],
+  rules: ["Same filters as the list → same rows (shared statement)", "&gt; EXPORT_MAX_ROWS (100 000) → failed, “narrow the filters”; never a cut-short file", "CSV with UTF-8 BOM; cells starting = + - @ get a leading '", "Queue down → 503; worker died → failed after 1 h", "Files expire after EXPORT_RETENTION_DAYS (7)"],
+  delta: "Adds a notification to the requester on done/failed, own-exports-only, and retention cleanup (B07 decisions). Download fetches a fresh 60 s link each time.",
+  stage: seq(["user", "fe", "be", "db", "w", "s3"], [
+    { f: "user", t: "fe", m: "Export → CSV / XLSX → Export" },
+    { f: "fe", t: "be", m: "POST /exports {resource, format, filters}" },
+    { self: "be", m: "export:run + read key; filters parsed now (422)" },
+    { f: "be", t: "db", m: "export_jobs: queued · audit exports.create" },
+    { f: "be", t: "w", m: "enqueue build_export (503 if the queue is down)" },
+    { f: "be", t: "fe", m: "202 {id, status: queued}", r: true },
+    { alt: "every 2 s until done / failed (stops when the dialog closes)", kind: "loop" },
+    { f: "fe", t: "be", m: "GET /exports/{id}" },
+    { f: "w", t: "db", m: "running; re-check permissions; count ≤ max; stream rows (server-side cursor)" },
+    { f: "w", t: "s3", m: "upload CSV / XLSX" },
+    { f: "w", t: "db", m: "done + notification export.done · audit exports.finish" },
+    { f: "be", t: "fe", m: "status done, row_count, fresh download_url (60 s)", r: true },
+    { f: "fe", t: "s3", m: "Download" },
+    { note: "Bell (30 s count) shows “Your items export is ready”. cleanup_exports (03:45) expires files after 7 days.", over: ["fe", "w"] },
+  ]),
+});
+
+/* F10 */
+page({
+  id: "F10", title: "Manage roles", route: "/users → ⋯ → Change roles · developer: permissions.py / SQL", batch: "B04 · B06 · B10",
+  trigger: ["<b>Users → ⋯ → Change roles</b> (checkboxes)", "Deactivate / Activate in the same menu"],
+  perm: ["<code>roles:assign</code> (owner, admin); deactivate: <code>users:deactivate</code>"],
+  api: ["PUT /users/{id}/roles", "POST /users/{id}/deactivate · /activate", "GET /roles"],
+  rules: ["Cannot assign a role above your own", "Cannot remove or deactivate the last owner", "Refusals are shown in the dialog, which stays open", "Deactivation signs the member out (sessions revoked)", "Grants per role: no UI; developer path below"],
+  delta: "As specified. Module permissions declare <code>default_roles</code>; <code>sync-permissions</code> grants defaults only for NEW keys, so an operator's removal sticks (B06 D1).",
+  stage: seq(["owner", "fe", "be", "redis", "db"], [
+    { f: "owner", t: "fe", m: "⋯ → Change roles; tick / untick" },
+    { f: "fe", t: "be", m: "PUT /users/{id}/roles {role_keys}" },
+    { self: "be", m: "roles:assign; rank rules; last owner" },
+    { alt: "rule broken", kind: "alt" },
+    { f: "be", t: "fe", m: "403 / 409 with the reason → shown in the dialog", err: true },
+    { alt: "allowed", kind: "else" },
+    { f: "be", t: "db", m: "replace user_roles · audit roles.assign" },
+    { f: "be", t: "redis", m: "drop that user's permission cache" },
+    { f: "be", t: "fe", m: "200 → toast, badges update", r: true },
+    { alt: "developer changes what a role can do", kind: "opt" },
+    { note: "edit module permissions.py (default_roles) → make cli args=sync-permissions (new keys only) — or SQL on role_permissions in DBeaver; cached permission sets expire within 60 s", over: ["fe", "db"] },
+  ]),
+});
+
+/* F11 */
+page({
+  id: "F11", title: "Platform admin tasks", route: "make cli … · /platform", batch: "B02 · B04 · B09",
+  trigger: ["Developer on the host shell (PuTTY)", "Platform admin signs in → /platform"],
+  perm: ["shell access; <code>is_platform_admin</code> for the UI"],
+  api: ["CLI: create-tenant, migrate-all, suspend-org, activate-org, list-orgs, sync-permissions, cleanup-files, cleanup-exports", "GET /platform/orgs · /platform/stats"],
+  rules: ["Provisioning is idempotent: re-run resumes after a failure", "A failed run drops only a schema it created itself", "Platform admin entering a tenant (X-Tenant) is always audited"],
+  delta: "As specified. Org list and stats stub only; no admin UI (deliverables).",
+  stage: pipe([
+    { title: "Create a tenant", kind: "be", steps: [
+      { t: "make create-tenant slug=acme name=\"Acme\" owner=owner@acme.test", sub: "python -m app.cli create-tenant" },
+      { t: "Validate slug (pattern, reserved words)" }, { t: "organizations row: provisioning" },
+      { t: "CREATE SCHEMA tenant_acme" }, { t: "Tenant migrations (0001 … 0004)" },
+      { t: "Seed roles + default grants from every module" },
+      { t: "Owner: existing user, new user, or invitation email" },
+      { t: "status active · audit org.created" },
+    ] },
+    { title: "Keep tenants running", kind: "be", steps: [
+      { t: "make migrate", sub: "public track, then every tenant; one line each" },
+      { t: "make cli args=sync-permissions", sub: "new keys + their default grants" },
+      { t: "suspend-org / activate-org", sub: "members get 403 while suspended" },
+      { t: "cleanup-files · cleanup-exports", sub: "same as the 03:30 / 03:45 crons" },
+      { t: "list-orgs", sub: "slug, status, plan, members" },
+    ] },
+    { title: "Platform admin in the UI", kind: "fe", steps: [
+      { t: "Log in as a platform admin (no org)" }, { t: "/platform: organizations table + stats stub" },
+      { t: "Enter a tenant by sending X-Tenant", sub: "audit tenancy.platform_admin_access" },
+      { t: "No admin screens: everything else via CLI / DBeaver" },
+    ] },
+  ]),
+});
+
+/* F12 */
+page({
+  id: "F12", title: "Audit read", route: "host: logs/audit/audit.log", batch: "B01 · every batch",
+  trigger: ["An operator needs to know who changed what"],
+  perm: ["shell / SFTP access to the host"],
+  api: ["none: no in-app reader (deliverables, B10 D1)"],
+  rules: ["Every write action appends exactly one JSON line", "Sensitive actions fail closed: no audit line → the request fails (500)", "Secrets and tokens are redacted"],
+  delta: "As specified. The item “History” panel of the wireframe was dropped (B10 D1): audit stays a file.",
+  stage: pipe([
+    { title: "Written by the app", kind: "be", steps: [
+      { t: "A user changes something", sub: "e.g. PATCH /items/{id}" },
+      { t: "Service commits the change" },
+      { t: "audit.record(action, entity, entity_id, org, actor, diff)", sub: "items.update · files.upload · users.invite …" },
+      { t: "One JSON line appended", sub: "logs/audit/audit.log (host volume)" },
+    ] },
+    { title: "Read by an operator", kind: "person", steps: [
+      { t: "PuTTY / SFTP to the host" },
+      { t: "cd /prj/coruscant/daffy/logs/audit" },
+      { t: "Filter", sub: "grep '\"action\": \"items.update\"' audit.log" },
+      { t: "Pretty-print / query", sub: "jq 'select(.org==\"b04live\")' audit.log" },
+    ] },
+  ]),
+});
+
+/* F13 */
+page({
+  id: "F13", title: "Add a business module (developer)", route: "copy modules/_template (backend + frontend)", batch: "B06 · B07 · B11",
+  trigger: ["A new business feature, e.g. “widgets”"],
+  perm: ["developer; the module declares its own keys, e.g. <code>widgets:read|write|delete</code>"],
+  api: ["the copied CRUD routes, e.g. /widgets"],
+  rules: ["Only the registry line and the nav line touch shared files", "Search and export are opt-in: add search.py / exports.py", "Guides: backend/app/modules/_template/README.md, frontend/src/modules/_template/README.md"],
+  delta: "Frontend half is config-driven (B11 D13): one <code>config.ts</code> drives list, detail and form.",
+  stage: pipe([
+    { title: "Backend", kind: "be", steps: [
+      { t: "Copy app/modules/_template → widgets", sub: "rename table, keys, /widgets" },
+      { t: "models.py + next tenant migration" },
+      { t: "permissions.py with default_roles" },
+      { t: "Optional: search.py, exports.py" },
+      { t: "Add \"widgets\" to registry.MODULES" },
+      { t: "make migrate · make cli args=sync-permissions" },
+    ] },
+    { title: "Frontend", kind: "fe", steps: [
+      { t: "make gen-client", sub: "useListWidgets, createWidget …" },
+      { t: "Copy src/modules/_template/config.ts", sub: "columns, filters, fields, schema, api" },
+      { t: "Route files (app)/widgets/…", sub: "4 files, ~10 lines each" },
+      { t: "One line in config/navigation.ts" },
+      { t: "Optional: search type in search-types.ts" },
+    ] },
+    { title: "Verify", kind: "store", steps: [
+      { t: "Backend: copy the module tests", sub: "make test" },
+      { t: "Frontend: copy module.test.tsx", sub: "make fe-test · make fe-lint" },
+      { t: "gen-client-check", sub: "client matches the API" },
+      { t: "Sign in per role: buttons follow the permissions" },
+    ] },
+  ]),
+});
+
+/* ---------------------------------------------------- write the pages */
+document.body.insertAdjacentHTML("beforeend", pages.join("\n"));
+const all = document.querySelectorAll("section.page");
+all.forEach((p, i) => { p.innerHTML = p.innerHTML.replace("{{N}}", String(i + 1)).replace("{{T}}", String(all.length)); });
+</script>
+</body>
+</html>

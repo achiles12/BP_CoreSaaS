@@ -1,0 +1,73 @@
+# Sample .gitignore for a project cloned from this starter.
+# Use: cp .gitignore.sample .gitignore   (replaces the current one; then adjust)
+# It holds the starter's own rules plus common extras. A file git already
+# tracks stays tracked; stop tracking it with: git rm --cached <file>
+
+# --- Secrets and per-clone settings ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+
+# --- Logs (keep the folder, not its content) ---
+logs/audit/*
+!logs/audit/.gitkeep
+*.log
+
+# --- Database dumps and backups (may hold user data) ---
+/backup/
+*.dump
+*.sql.gz
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.coverage
+htmlcov/
+
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+.pnpm-store/
+npm-debug.log*
+pnpm-debug.log*
+frontend/src/api/.gen-check/
+
+# --- Browser tests (reports, screenshots) ---
+playwright-report/
+test-results/
+frontend/tests/e2e/report/
+shots/
+
+# --- Docker: personal overrides ---
+docker-compose.override.yml
+
+# --- Editors / OS ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# --- Working notes and local tools (remove a line to commit that folder) ---
+/03_summary/
+/04_todos/
+/05_stage*/
+/.claude/
+
+# Not ignored on purpose: uv.lock, pnpm-lock.yaml, migrations,
+# frontend/src/api/generated/ and .env.example belong in the repo.

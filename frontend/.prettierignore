@@ -1,0 +1,10 @@
+.next
+node_modules
+coverage
+pnpm-lock.yaml
+openapi.json
+src/api/generated
+src/api/.gen-check
+.pnpm-store
+tsconfig.tsbuildinfo
+next-env.d.ts

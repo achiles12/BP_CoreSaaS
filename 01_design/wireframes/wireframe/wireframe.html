@@ -1,0 +1,665 @@
+<!doctype html>
+<!--
+  Core SaaS wireframe set (01_design/wireframes/20261113_wireframe_design.md).
+  Self-contained: inline CSS + a small JS builder, no network.
+  Rendered to PDF by render.mjs (Playwright, A4 landscape, one .page per sheet).
+  Every screen is built (B08–B11); drawn from the running app and the B09/B10
+  walk screenshots (updated 2026-11-20).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Core SaaS Wireframes</title>
+<style>
+  @page { size: A4 landscape; margin: 0; }
+  :root {
+    --ink: #1f1f1f; --mid: #6b6b6b; --soft: #9a9a9a; --line: #cfcfcf;
+    --fill: #ececec; --fill2: #f6f6f6; --paper: #fff; --accent: #2f6fd6;
+    --built: #1d7a46; --planned: #b26a00; --ph: #7a4bc2; --warn: #fff1c2;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #888; font: 11px/1.35 "Helvetica Neue", Arial, sans-serif; color: var(--ink); }
+  /* One A4 landscape sheet = 1123 x 794 CSS px. */
+  .page { width: 1123px; height: 794px; background: var(--paper); margin: 0 auto 12px; overflow: hidden;
+          display: grid; grid-template-rows: 44px 1fr 22px; page-break-after: always; break-after: page; }
+  @media print { html, body { background: #fff; } .page { margin: 0; } }
+  .head { display: flex; align-items: center; gap: 12px; padding: 0 22px; border-bottom: 2px solid var(--ink); }
+  .head .sid { font: 700 18px/1 monospace; }
+  .head .stitle { font-size: 17px; font-weight: 600; }
+  .head .route { margin-left: auto; font: 12px monospace; color: var(--mid); }
+  .foot { display: flex; justify-content: space-between; padding: 0 22px; font-size: 9px; color: var(--soft); border-top: 1px solid var(--line); align-items: center; }
+  .body { display: grid; grid-template-columns: 1fr 250px; min-height: 0; }
+  .stage { padding: 14px 16px 10px 22px; min-height: 0; overflow: hidden; }
+  .panel { border-left: 1px solid var(--line); background: var(--fill2); padding: 12px 14px; overflow: hidden; font-size: 10px; }
+  .panel h4 { margin: 10px 0 3px; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--mid); }
+  .panel h4:first-child { margin-top: 0; }
+  .panel ul { margin: 0; padding-left: 14px; } .panel li { margin: 1px 0; }
+  .panel code, .mono { font-family: monospace; font-size: 9.5px; }
+  .status { display: inline-block; padding: 3px 8px; border-radius: 3px; font: 700 10px monospace; color: #fff; }
+  .s-built { background: var(--built); } .s-planned { background: var(--planned); } .s-ph { background: var(--ph); }
+
+  /* ---------- wireframe primitives ---------- */
+  .frame { border: 1.5px solid var(--ink); border-radius: 6px; background: #fff; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+  .frame .chrome { height: 16px; background: var(--fill); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 4px; padding: 0 6px; flex: none; }
+  .frame .chrome i { width: 6px; height: 6px; border-radius: 50%; background: var(--soft); }
+  .frame .chrome span { margin-left: 8px; font: 8.5px monospace; color: var(--mid); }
+  .flabel { font: 600 9.5px/1 sans-serif; color: var(--mid); margin: 0 0 4px; text-transform: uppercase; letter-spacing: .06em; }
+  .devbar { background: var(--warn); text-align: center; font-size: 8.5px; padding: 2px; flex: none; }
+  .verifybar { background: var(--fill); text-align: center; font-size: 9px; padding: 4px; border-bottom: 1px solid var(--line); flex: none; }
+  .topbar { height: 30px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; padding: 0 10px; flex: none; }
+  .topbar b { font-weight: 600; } .topbar .org { color: var(--mid); border-left: 1px solid var(--line); padding-left: 8px; }
+  .topbar .right { margin-left: auto; display: flex; gap: 8px; align-items: center; color: var(--mid); }
+  .avatar { width: 16px; height: 16px; border-radius: 50%; background: var(--fill); display: inline-grid; place-items: center; font-size: 8px; }
+  .bell { position: relative; } .bell sup { position: absolute; top: -5px; right: -7px; background: var(--ink); color: #fff; border-radius: 6px; font-size: 7px; padding: 0 3px; }
+  .shell { display: grid; grid-template-columns: 118px 1fr; flex: 1; min-height: 0; }
+  .side { background: var(--fill2); border-right: 1px solid var(--line); padding: 6px 5px; }
+  .nav { display: flex; align-items: center; gap: 5px; padding: 4px 6px; border-radius: 4px; color: var(--ink); }
+  .nav.on { background: var(--fill); font-weight: 600; } .nav.off { color: var(--soft); }
+  .nav .ic { width: 9px; height: 9px; border: 1.2px solid currentColor; border-radius: 2px; flex: none; }
+  .nav .soon { margin-left: auto; font-size: 7px; border: 1px solid var(--line); border-radius: 6px; padding: 0 3px; }
+  .main { padding: 10px 14px; overflow: hidden; min-height: 0; }
+  .ptitle { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; margin: 2px 0 10px; }
+  .ptitle .act { margin-left: auto; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; } .grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+  .span2 { grid-column: span 2; }
+  .card { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: #fff; }
+  .card .ct { display: flex; align-items: center; gap: 5px; font-weight: 600; font-size: 11px; margin-bottom: 5px; }
+  .card .ct .ic { width: 9px; height: 9px; border: 1.2px solid var(--mid); border-radius: 2px; }
+  .muted { color: var(--mid); } .small { font-size: 9px; } .big { font-size: 20px; font-weight: 400; }
+  .pill { display: inline-block; border: 1px solid var(--line); border-radius: 8px; padding: 0 5px; font-size: 8px; color: var(--mid); background: #fff; }
+  .pill.dark { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .pill.red { background: #c62828; color: #fff; border-color: #c62828; }
+  .pill.phc { border-color: var(--ph); color: var(--ph); border-style: dashed; }
+  .row { display: flex; align-items: center; gap: 6px; } .between { justify-content: space-between; }
+  .field { margin: 0 0 7px; } .field label { display: block; font-size: 9.5px; font-weight: 500; margin-bottom: 2px; }
+  .input { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 20px; border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; font-size: 9px; color: var(--soft); background: #fff; }
+  .input.ro { background: var(--fill2); } .input.err { border-color: #c62828; }
+  .ferr { color: #c62828; font-size: 8.5px; margin-top: 1px; } .hint { color: var(--mid); font-size: 8.5px; margin-top: 1px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; height: 20px; border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; font-size: 9px; background: #fff; white-space: nowrap; }
+  .btn.pri { background: var(--ink); color: #fff; border-color: var(--ink); } .btn.full { width: 100%; } .btn.dis { opacity: .45; } .btn.danger { background: #c62828; color: #fff; border-color: #c62828; }
+  .alert { border: 1px solid #c62828; color: #c62828; border-radius: 4px; padding: 4px 6px; font-size: 9px; margin-bottom: 7px; background: #fff6f6; }
+  .alert.ok { border-color: var(--built); color: var(--built); background: #f3fbf6; }
+  .link { color: var(--accent); text-decoration: underline; }
+  table.t { width: 100%; border-collapse: collapse; font-size: 9px; } .t th { text-align: left; font-weight: 500; color: var(--mid); border-bottom: 1px solid var(--line); padding: 3px 4px; }
+  .t td { border-bottom: 1px solid var(--fill); padding: 3px 4px; } .t .r { text-align: right; }
+  .bar { height: 6px; border-radius: 3px; background: var(--fill); } .bar.w { background: var(--line); }
+  .ph { background: repeating-linear-gradient(45deg, var(--fill2) 0 6px, var(--fill) 6px 12px); border: 1px dashed var(--soft); border-radius: 4px; display: grid; place-items: center; color: var(--mid); font-size: 9px; }
+  .pubwrap { flex: 1; background: #fafafa; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px; }
+  .pubwrap .brand { font-size: 13px; margin-bottom: 8px; }
+  .pcard { width: 230px; border: 1px solid var(--line); border-radius: 7px; background: #fff; padding: 12px 14px; }
+  .pcard h3 { margin: 0 0 2px; font-size: 12px; font-weight: 500; } .pcard .sub { color: var(--mid); font-size: 9px; margin-bottom: 9px; }
+  .dialog { position: absolute; background: #fff; border: 1.5px solid var(--ink); border-radius: 7px; padding: 10px 12px; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+  .dim { position: absolute; inset: 0; background: rgba(0,0,0,.28); }
+  .callout { flex: none; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); color: #fff; font: 700 9px/16px sans-serif; text-align: center; z-index: 5; }
+  .notes ol { margin: 0; padding-left: 16px; } .notes li::marker { color: var(--accent); font-weight: 700; }
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 8px; } .tabs span:not(.callout) { padding: 3px 9px; font-size: 9.5px; color: var(--mid); }
+  .tabs span.on:not(.callout) { color: var(--ink); border-bottom: 2px solid var(--ink); font-weight: 600; }
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--line); border-top-color: var(--ink); border-radius: 50%; margin: 0 auto 6px; }
+  .toast { position: absolute; right: 10px; bottom: 10px; background: #fff; border: 1px solid var(--ink); border-radius: 5px; padding: 6px 9px; font-size: 9px; box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+  .drop { border: 1.5px dashed var(--soft); border-radius: 6px; padding: 14px; text-align: center; color: var(--mid); }
+  .stateTile { display: flex; flex-direction: column; }
+  mark { background: #ffe9a8; padding: 0 1px; }
+  .cover h1 { font-size: 34px; margin: 0 0 4px; font-weight: 600; } .cover h2 { font-size: 14px; font-weight: 400; color: var(--mid); margin: 0 0 18px; }
+  .idx td, .idx th { padding: 3px 6px; font-size: 10px; } .idx th { text-align: left; border-bottom: 1.5px solid var(--ink); }
+  .idx td { border-bottom: 1px solid var(--fill); }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script>
+/* ===================== builder helpers ===================== */
+const DEV = "Dev: emails go to Mailpit (192.168.50.113:8025)";
+const NAV_ALL = [
+  ["Home", null], ["Files", "files:read"], ["Search", "search:use"], ["Users", "users:read"],
+  ["Organization", "org:read"],
+];
+// Sidebar entries per role (b04live grants, config/navigation.ts). Items (B11)
+// shows for every tenant role: all five hold items:read.
+const ROLE_NAV = {
+  owner: ["Home", "Files", "Search", "Users", "Organization", "Items"],
+  admin: ["Home", "Files", "Search", "Users", "Organization", "Items"],
+  manager: ["Home", "Files", "Search", "Users", "Organization", "Items"],
+  staff: ["Home", "Files", "Search", "Items"],          // b04live staff lacks org:read
+  user: ["Home", "Files", "Search", "Organization", "Items"],
+  platform: ["Home", "Platform"],
+  none: ["Home"],
+};
+
+function side(role, active, built, extra = [], mark) {
+  const items = ROLE_NAV[role].concat(extra);
+  return `<div class="side">${items.map(l => {
+    // Since B10/B11 every page is built: no "soon" badges anywhere.
+    const soon = false && built && !["Home", "Platform"].includes(l);
+    return `<div class="nav ${l === active ? "on" : ""} ${soon ? "off" : ""}"><span class="ic"></span>${l}${mark && mark[0] === l ? ci(mark[1]) : ""}${soon ? '<span class="soon">soon</span>' : ""}</div>`;
+  }).join("")}</div>`;
+}
+function topbar({ org = "B04 Live", user = "owner@b04live.test", bell = false, burger = false, c = {} }) {
+  return `<div class="topbar">${burger ? "☰ " : ""}<b>Core SaaS</b><span class="org">${org}</span>${c.top ? ci(c.top) : ""}
+    <span class="right">${c.bell ? ci(c.bell) : ""}${bell ? '<span class="bell">🔔<sup>3</sup></span>' : ""}<span class="avatar">${user[0].toUpperCase()}</span>${burger ? "" : user}</span></div>`;
+}
+/** Full app-shell frame. */
+function app({ role = "owner", active = "Home", built = true, org, user, bell, verify, content, url, h, extraNav, style = "", c = {} }) {
+  return `<div class="frame" style="height:${h || 600}px;${style}">
+    <div class="chrome"><i></i><i></i><i></i><span>192.168.50.113:3200${url || ""}</span></div>
+    <div class="devbar">${DEV}${c.dev ? ci(c.dev) : ""}</div>${topbar({ org, user, bell, c })}
+    ${verify ? `<div class="verifybar">Please verify your email address (${user}). Some data stays hidden until you do. <span class="btn">Resend email</span>${c.verify ? ci(c.verify) : ""}</div>` : ""}
+    <div class="shell">${side(role, active, built, extraNav, c.side)}<div class="main">${content}</div></div></div>`;
+}
+/** Public-layout frame: dev bar, product name, centred card. */
+function pub({ card, url, h = 600, w }) {
+  return `<div class="frame" style="height:${h}px;${w ? `width:${w}px;` : ""}">
+    <div class="chrome"><i></i><i></i><i></i><span>192.168.50.113:3200${url || ""}</span></div>
+    <div class="devbar">${DEV}</div>
+    <div class="pubwrap"><div class="brand">Core SaaS</div>${card}</div></div>`;
+}
+const pcard = (title, sub, body) => `<div class="pcard"><h3>${title}</h3>${sub ? `<div class="sub">${sub}</div>` : ""}${body}</div>`;
+const field = (label, val = "", o = {}) => `<div class="field"><label>${label}</label><div class="input ${o.ro ? "ro" : ""} ${o.err ? "err" : ""}">${val}</div>${o.err ? `<div class="ferr">${o.err}</div>` : ""}${o.hint ? `<div class="hint">${o.hint}</div>` : ""}</div>`;
+const btn = (t, c = "") => `<span class="btn ${c}">${t}</span>`;
+const card = (title, body, cls = "") => `<div class="card ${cls}">${title ? `<div class="ct"><span class="ic"></span>${title}</div>` : ""}${body}</div>`;
+const pill = (t, c = "") => `<span class="pill ${c}">${t}</span>`;
+const ci = n => `<span class="callout" style="position:static;display:inline-block;vertical-align:middle;margin:0 3px;font-weight:700">${n}</span>`;
+const call = (n, x, y) => `<div class="callout" style="left:${x}px;top:${y}px">${n}</div>`;
+const table = (heads, rows, rightCols = []) => `<table class="t"><tr>${heads.map((h, i) => `<th class="${rightCols.includes(i) ? "r" : ""}">${h}</th>`).join("")}</tr>${rows.map(r => `<tr>${r.map((c, i) => `<td class="${rightCols.includes(i) ? "r" : ""}">${c}</td>`).join("")}</tr>`).join("")}</table>`;
+const welcome = (who, role, org = "B04 Live · <span class='mono'>b04live</span>") =>
+  card(`Welcome, ${who}`, `<div class="muted small">${org}</div><div class="row small" style="margin-top:5px"><span class="muted">Signed in as ${who}</span>${pill(role, "dark")}</div>`, "span2");
+// Live cards drawn as built in B10 (D14).
+const fileList = (title, rows = [["Q3-report.pdf", "11-12"], ["logo.png", "11-12"], ["notes.txt", "11-09"]]) =>
+  card(title, rows.map(([n, d]) => `<div class="row between small"><span class="link">${n}</span><span class="muted">${d}</span></div>`).join("") + `<div class="small link" style="margin-top:5px">All files →</div>`);
+const linkCard = (title, text) => card(title, `<div class="muted small">${text}</div><div class="small link" style="margin-top:5px">Open ${title.replace(/<[^>]*>/g, "").toLowerCase()} →</div>`);
+const phCard = (title, text, batch) => card(title, `<div class="muted small">${text}</div><div style="margin-top:5px">${pill(batch, "phc")}</div>`);
+const tile = (label, inner, w) => `<div class="stateTile" ${w ? `style="width:${w}px"` : ""}><div class="flabel">${label}</div>${inner}</div>`;
+
+const STATUS = { built: ["s-built", "BUILT"], planned: ["s-planned", "PLANNED"], ph: ["s-ph", "PLACEHOLDER"] };
+/** One sheet. */
+function page({ id = "", title, route = "", status, batch = "", access, api = [], states = [], notes = [], stage, panel = true }) {
+  const st = status ? `<span class="status ${STATUS[status][0]}">${STATUS[status][1]} ${batch}</span>` : "";
+  const list = a => a.length ? `<ul>${a.map(x => `<li>${x}</li>`).join("")}</ul>` : "<div class='muted'>—</div>";
+  const side = panel ? `<div class="panel">
+      <h4>Status</h4>${st}
+      <h4>Route</h4><code>${route || "—"}</code>
+      <h4>Access</h4>${access || "—"}
+      <h4>API</h4>${list(api.map(a => `<code>${a}</code>`))}
+      <h4>States</h4>${list(states)}
+      ${notes.length ? `<h4>Notes</h4><div class="notes"><ol>${notes.map(n => `<li>${n}</li>`).join("")}</ol></div>` : ""}
+    </div>` : "";
+  return `<section class="page" data-id="${id}">
+    <div class="head"><span class="sid">${id}</span><span class="stitle">${title}</span><span class="route">${route}</span></div>
+    <div class="body" ${panel ? "" : 'style="grid-template-columns:1fr"'}><div class="stage">${stage}</div>${side}</div>
+    <div class="foot"><span>Core SaaS scaffold · wireframes · low fidelity, not to scale</span><span>2026-11-20 · page {{N}} of {{T}}</span></div>
+  </section>`;
+}
+
+/* ===================== pages ===================== */
+const P = [];
+
+/* 1 Cover + index */
+const INDEX = [
+  ["—", "Screen map", "—", "—"],
+  ["§1", "Layouts: public card, app shell, mobile drawer", "—", "BUILT B08"],
+  ["S01", "Login", "/login", "BUILT B09"],
+  ["S02", "Forgot / reset password", "/forgot-password, /reset-password", "BUILT B09"],
+  ["S03", "Verify email + unverified banner", "/verify-email", "BUILT B09"],
+  ["S04", "Accept invite", "/accept-invite", "BUILT B09"],
+  ["S05", "Post-login + no organization", "/post-login, /no-organization", "BUILT B09"],
+  ["S06", "Org picker: dropped (one org per user, B04 D1)", "—", "DROPPED"],
+  ["S07", "Owner landing", "/home/owner", "BUILT B09"],
+  ["S07", "Admin + manager landing", "/home/admin, /home/manager", "BUILT B09"],
+  ["S07", "Staff + user landing", "/home/staff, /home/user", "BUILT B09"],
+  ["S07", "Platform", "/platform", "BUILT B09"],
+  ["S08", "Files", "/files", "BUILT B10"],
+  ["S09", "Search", "/search", "BUILT B10"],
+  ["S10", "Users + invitations", "/users", "BUILT B10"],
+  ["S11", "Profile", "/settings/profile", "BUILT B10"],
+  ["S12", "Organization settings", "/settings/organization", "BUILT B10"],
+  ["S13", "Exports dialog", "(dialog)", "BUILT B10"],
+  ["S14", "Notifications bell", "(top bar)", "BUILT B10"],
+  ["S15", "Template items", "/items", "BUILT B11"],
+  ["S16", "Errors + session expired", "/403, /404, any", "BUILT B08"],
+];
+P.push(page({ id: "", title: "Core SaaS: Wireframes", panel: false, stage: `
+  <div class="cover" style="display:grid;grid-template-columns:330px 1fr;gap:28px;height:100%">
+    <div>
+      <h1>Core SaaS</h1><h2>Wireframes of every screen: Phase 1 scaffold</h2>
+      <p>Low fidelity, greyscale. One screen (or one screen's states) per page. The side panel on each page lists the route, the permission, the API calls behind it, its states and its build status.</p>
+      <p>Every screen is <b>built</b> (B08–B11) and drawn as it looks in the running app on 2026-11-20. Differences from <code>ui_screens.md</code> are user decisions noted on each page (e.g. no item history, no role filter).</p>
+      <p style="margin-top:14px"><span class="status s-built">BUILT</span> live in the app (all screens)<br><br>
+      <span class="status s-ph">PLACEHOLDER</span> ${pill("arrives in a business module", "phc")} card on a built page that still waits for data (only “Recent activity”)</p>
+      <p style="margin-top:14px" class="muted">Sources: 01_design/ui_screens.md · api_spec.md · frontend/src/config/navigation.ts, landing.ts · 05_stage09/shots/, 05_stage10/shots/. Source HTML: 01_design/wireframes/wireframe/wireframe.html</p>
+      <p class="muted">Blue numbered dots <span class="callout" style="position:static;display:inline-block">1</span> point at the notes in each page's side panel.</p>
+    </div>
+    <div><table class="idx" style="width:100%;border-collapse:collapse"><tr><th>Page</th><th>ID</th><th>Screen</th><th>Route</th><th>Status</th></tr>
+      ${(() => { let n = 2; return INDEX.map(r => `<tr><td>${r[0] === "S06" ? "—" : n++}</td><td class="mono">${r[0]}</td><td>${r[1]}</td><td class="mono">${r[2]}</td><td>${r[3]}</td></tr>`).join(""); })()}
+    </table></div>
+  </div>` }));
+
+/* 2 Screen map (SVG) */
+function box(x, y, w, h, t, sub, kind) {
+  const fill = { b: "#eef7f1", p: "#fff6e8", n: "#f2f2f2", d: "#fff" }[kind || "b"];
+  const stroke = { b: "#1d7a46", p: "#b26a00", n: "#555", d: "#999" }[kind || "b"];
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="1.4" ${kind === "d" ? 'stroke-dasharray="4 3"' : ""}/>
+    <text x="${x + w / 2}" y="${y + (sub ? h / 2 - 2 : h / 2 + 4)}" text-anchor="middle" font-size="11" font-weight="600">${t}</text>
+    ${sub ? `<text x="${x + w / 2}" y="${y + h / 2 + 11}" text-anchor="middle" font-size="9" fill="#666" font-family="monospace">${sub}</text>` : ""}`;
+}
+const arr = (x1, y1, x2, y2, lbl, lx, ly) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#333" stroke-width="1.2" marker-end="url(#a)"/>${lbl ? `<text x="${lx ?? (x1 + x2) / 2}" y="${ly ?? (y1 + y2) / 2 - 4}" font-size="9" fill="#444" text-anchor="middle">${lbl}</text>` : ""}`;
+P.push(page({ id: "MAP", title: "Screen map", panel: false, stage: `
+<svg width="1080" height="700" viewBox="0 0 1080 700" font-family="Helvetica, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker></defs>
+  <text x="0" y="14" font-size="11" fill="#666">Public (no session)</text>
+  ${box(0, 30, 150, 46, "S01 Login", "/login")}
+  ${box(0, 110, 150, 46, "S02 Forgot password", "/forgot-password")}
+  ${box(0, 330, 150, 46, "S02 Reset password", "/reset-password?token")}
+  ${box(0, 400, 150, 46, "S03 Verify email", "/verify-email?token")}
+  ${box(0, 470, 150, 46, "S04 Accept invite", "/accept-invite?token")}
+  ${box(0, 250, 150, 50, "Email (Mailpit)", "reset · verify · invite", "n")}
+  ${arr(75, 110, 75, 76)}${arr(75, 156, 75, 250, "sends email", 118, 210)}
+  ${arr(75, 300, 75, 330)}
+  <path d="M150,275 C175,275 175,423 150,423" fill="none" stroke="#333" stroke-width="1.2" marker-end="url(#a)"/>
+  <path d="M150,280 C190,280 190,493 150,493" fill="none" stroke="#333" stroke-width="1.2" marker-end="url(#a)"/>
+  <path d="M150,353 C230,353 230,53 150,53" fill="none" stroke="#333" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#a)"/>
+  
+  <path d="M150,493 C250,493 250,60 150,60" fill="none" stroke="#333" stroke-width="1.2" stroke-dasharray="3 2"/>
+
+  ${arr(150, 45, 300, 45, "ok", 225, 40)}
+  ${box(300, 22, 160, 46, "S05 Post-login", "/post-login?next")}
+  ${arr(380, 68, 380, 110, "landing_path = null", 440, 95)}
+  ${box(300, 110, 160, 46, "No organization", "/no-organization")}
+  ${arr(460, 45, 560, 45, "safe next", 510, 40)}
+  ${box(560, 22, 170, 46, "Deep link (next)", "e.g. /settings/profile", "n")}
+  ${arr(380, 156, 380, 200, "", 0, 0)}
+  <text x="390" y="185" font-size="9" fill="#444">landing_path</text>
+
+  <text x="300" y="196" font-size="11" fill="#666"> </text>
+  ${box(250, 200, 120, 44, "Owner", "/home/owner")}
+  ${box(380, 200, 120, 44, "Admin", "/home/admin")}
+  ${box(510, 200, 120, 44, "Manager", "/home/manager")}
+  ${box(250, 254, 120, 44, "Staff", "/home/staff")}
+  ${box(380, 254, 120, 44, "User", "/home/user")}
+  ${box(510, 254, 120, 44, "Platform admin", "/platform")}
+  <rect x="240" y="192" width="400" height="116" rx="8" fill="none" stroke="#999" stroke-dasharray="5 3"/>
+  <text x="648" y="210" font-size="9" fill="#444">S07 landing pages</text>
+  <text x="648" y="222" font-size="9" fill="#444">wrong role → own page</text>
+
+  <text x="250" y="352" font-size="11" fill="#666">App shell · sidebar entries (shown only with the permission)</text>
+  ${box(250, 364, 130, 46, "S08 Files", "/files · files:read")}
+  ${box(390, 364, 130, 46, "S09 Search", "/search · search:use")}
+  ${box(530, 364, 130, 46, "S10 Users", "/users · users:read")}
+  ${box(670, 364, 150, 46, "S12 Organization", "/settings/org… · org:read")}
+  ${box(830, 364, 130, 46, "S15 Items", "/items · items:read")}
+  ${arr(440, 308, 440, 362)}
+  <text x="250" y="452" font-size="11" fill="#666">Reached from inside pages / top bar</text>
+  ${box(250, 464, 150, 46, "S13 Export dialog", "Files · Users · Items")}
+  ${box(410, 464, 150, 46, "S14 Notifications", "bell in top bar")}
+  ${box(570, 464, 150, 46, "S11 Profile", "user menu")}
+  ${box(730, 464, 150, 46, "Upload / invite dialogs", "inside S08 / S10")}
+  ${arr(315, 410, 315, 462)}${arr(595, 410, 595, 462)}
+
+  <text x="250" y="560" font-size="11" fill="#666">Anywhere</text>
+  ${box(250, 572, 130, 44, "S16 403", "/403")}
+  ${box(390, 572, 130, 44, "S16 404", "unknown URL")}
+  ${box(530, 572, 150, 44, "S16 Session expired", "toast → /login?next")}
+  ${box(690, 572, 130, 44, "S16 Error boundary", "error.tsx")}
+  ${box(0, 572, 150, 44, "S06 Org picker", "dropped (B04 D1)", "d")}
+
+  <g transform="translate(850,22)">
+    <rect width="200" height="96" fill="#fff" stroke="#ccc"/>
+    <rect x="10" y="12" width="22" height="14" rx="3" fill="#eef7f1" stroke="#1d7a46"/><text x="40" y="23" font-size="10">Built (B08–B11)</text>
+    <rect x="10" y="36" width="22" height="14" rx="3" fill="#fff6e8" stroke="#b26a00"/><text x="40" y="47" font-size="10">Planned (none left)</text>
+    <rect x="10" y="60" width="22" height="14" rx="3" fill="#f2f2f2" stroke="#555"/><text x="40" y="71" font-size="10">External / example</text>
+    <line x1="10" y1="86" x2="32" y2="86" stroke="#333" stroke-dasharray="3 2"/><text x="40" y="89" font-size="10">"Log in" link</text>
+  </g>
+</svg>` }));
+
+/* 3 Layouts */
+P.push(page({
+  id: "§1", title: "Layouts: public, app shell, mobile", route: "(public) · (app)", status: "built", batch: "B08",
+  access: "Public layout: anyone. App shell: signed in (proxy.ts + layout guard)",
+  api: ["GET /me (shell: org name, nav, banner)", "POST /auth/refresh (on 401, single-flight)"],
+  states: ["Checking your session… (shell loading)", "Dev bar only when NEXT_PUBLIC_APP_ENV=dev", "Verify banner when /me.is_verified = false"],
+  notes: ["Dev bar, always on top", "Top bar: product · org name (no switcher, S06 dropped) · 🔔 bell (B10) · user menu (profile, theme, log out)", "Sidebar filtered by permission (config/navigation.ts); no “soon” badges since B10; Items (B11) with items:read", "Below 768 px: the sidebar becomes a ☰ drawer"],
+  stage: `<div style="display:grid;grid-template-columns:250px 1fr;gap:14px;height:100%">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${tile("Public layout", pub({ h: 260, url: "/login", card: pcard("Card title", "Card text", `<div class="ph" style="height:60px">form</div>`).replace('width: 230px', '') }))}
+      ${tile("Mobile (drawer open)", `<div class="frame" style="width:170px;height:300px;position:relative">
+        <div class="devbar" style="font-size:6px">${DEV}</div><div style="font-size:9px;white-space:nowrap">${topbar({ burger: true, c: { top: 4 } })}</div>
+        <div class="main"><div class="ph" style="height:200px">page</div></div>
+        <div class="dim" style="top:46px"></div>
+        <div style="position:absolute;left:0;top:46px;bottom:0;width:110px;background:#fff;border-right:1px solid var(--ink)">${side("owner", "Home", true)}</div>
+        </div>`)}
+    </div>
+    ${tile("App shell (desktop)", `<div style="position:relative">${app({ h: 600, c: { dev: 1, top: 2, side: ["Files", 3] }, content: `<div class="ptitle">Page title <span class="act">${btn("Primary action", "pri")}</span></div><div class="ph" style="height:440px">content</div>` })}
+      </div>`)}
+  </div>`
+}));
+
+/* 4 Login */
+P.push(page({
+  id: "S01", title: "Login", route: "/login?next=", status: "built", batch: "B09",
+  access: "Public. Signed in → 307 to /post-login (proxy.ts)",
+  api: ["POST /auth/refresh (silent, before the form shows)", "POST /auth/login {email,password}"],
+  states: ["Checking your session… (silent refresh)", "Field errors (Zod): no request sent", "401 → “Invalid email or password.”", "429 → “Too many attempts. Try again in a minute.”", "Signing you in… → /post-login?next"],
+  notes: ["“Forgot password?” → S02", "Errors stay generic: never says which part was wrong"],
+  stage: `<div style="display:grid;grid-template-columns:1fr 250px;gap:14px">
+    ${tile("Default", `<div style="position:relative">${pub({ h: 640, url: "/login?next=%2F", card: pcard("Log in", "Use your work email and password.", field("Email") + field("Password") + `<div style="text-align:right;font-size:8.5px;margin:-4px 0 8px" class="muted">Forgot password?${ci(1)}</div>` + btn("Log in", "pri full")) })}</div>`)}
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${tile("Validation (client)", pcard("Log in", "", field("Email", "abc", { err: "Enter a valid email address" }) + field("Password", "", { err: "Enter your password" }) + btn("Log in", "pri full")))}
+      ${tile("Wrong credentials (401)", pcard("Log in", "", `<div class="alert">Invalid email or password.</div>` + field("Email", "owner@b04live.test") + field("Password", "••••••") + btn("Log in", "pri full")))}
+      ${tile("Rate limited (429)", pcard("Log in", "", `<div class="alert">Too many attempts. Try again in a minute.</div>` + btn("Log in", "pri full dis")))}
+      ${tile("Silent refresh", `<div class="pcard" style="text-align:center"><div class="spinner"></div><span class="muted">Checking your session…</span></div>`)}
+    </div></div>`
+}));
+
+/* 5 Forgot / reset */
+P.push(page({
+  id: "S02", title: "Forgot / reset password", route: "/forgot-password · /reset-password?token=", status: "built", batch: "B09",
+  access: "Public (also when signed in, B09 D11)",
+  api: ["POST /auth/forgot-password {email} → always 202", "POST /auth/reset-password {token,new_password} → 204 / 400"],
+  states: ["Sent (same text whether the account exists or not)", "429 → retry text", "Reset 204 → all sessions revoked", "400 or no token → invalid link"],
+  notes: ["Strength hint: at least 12 characters, letters and numbers", "Confirm must match (client check)"],
+  stage: `<div class="grid3" style="gap:12px">
+    ${tile("Forgot: form", pcard("Forgot password", "We will email you a link to reset it.", field("Email", "win1@b04live.test") + btn("Send reset link", "pri full") + `<div class="small" style="margin-top:8px;text-align:center"><span class="link">Back to log in</span></div>`))}
+    ${tile("Forgot: sent", pcard("Check your email", "", `<div class="alert ok">If an account exists for that address, we sent a password reset link.</div><div class="small" style="text-align:center"><span class="link">Back to log in</span></div>`))}
+    ${tile("Forgot: rate limited", pcard("Forgot password", "", `<div class="alert">Too many attempts. Try again in a minute.</div>` + field("Email", "win1@b04live.test") + btn("Send reset link", "pri full dis")))}
+    ${tile("Reset: form", `<div style="position:relative">${pcard("Reset password", "Choose a new password.", field("New password", "", { hint: "At least 12 characters, with letters and numbers." + ci(1) }) + field("Confirm new password") + btn("Change password", "pri full"))}</div>`)}
+    ${tile("Reset: errors", `<div style="position:relative">${pcard("Reset password", "", field("New password", "short", { err: "Use at least 12 characters" }) + field("Confirm new password", "other", { err: "Passwords do not match" + ci(2) }) + btn("Change password", "pri full"))}</div>`)}
+    ${tile("Reset: done", pcard("Password changed", "", `<div class="alert ok">Your password was changed and you were signed out everywhere.</div>` + btn("Log in", "pri full")))}
+    ${tile("Reset: invalid link (400 / no token)", pcard("Reset password", "", `<div class="alert">This reset link is invalid or has expired.</div>` + btn("Request a new link", "full")))}
+  </div>`
+}));
+
+/* 6 Verify */
+P.push(page({
+  id: "S03", title: "Verify email + unverified banner", route: "/verify-email?token=", status: "built", batch: "B09",
+  access: "Public. Banner: signed in, /me.is_verified = false",
+  api: ["POST /auth/verify-email {token} (once on load)", "POST /auth/resend-verification (banner) → 202 / 409 / 429"],
+  states: ["Verifying… (spinner)", "Success → invalidates /me", "Invalid / expired / reused", "Resend: toast; 409 = already verified → refetch /me"],
+  notes: ["POST runs once (guarded against StrictMode's double effect)", "Banner sits between the top bar and the page"],
+  stage: `<div class="grid3" style="gap:12px">
+    ${tile("Verifying", `<div class="pcard" style="text-align:center"><div class="spinner"></div><span class="muted">Verifying your email…</span></div>`)}
+    ${tile("Success", pcard("Email verified", "", `<div class="alert ok">Thank you. Your email address is confirmed.</div>` + btn("Continue", "pri full")))}
+    ${tile("Failure", pcard("Could not verify", "", `<div class="alert">This verification link is invalid or has expired. Log in and use “Resend email” to get a new one.</div>` + btn("Log in", "full")))}
+  </div>
+  <div style="margin-top:16px;position:relative">${tile("Unverified banner in the app shell (with toast after Resend)", `<div style="position:relative">${app({ role: "none", org: "No organization", user: "winunv1@b09.test", verify: true, c: { verify: 2 }, h: 300, content: `<div class="ph" style="height:180px">page content</div>` })}
+    <div class="toast">✓ Verification email sent to winunv1@b09.test</div></div>`)}</div>`
+}));
+
+/* 7 Accept invite */
+P.push(page({
+  id: "S04", title: "Accept invite", route: "/accept-invite?token=", status: "built", batch: "B09",
+  access: "Public (also when signed in)",
+  api: ["POST /auth/invitation {token} → {email, org_name, role_key, existing_account}", "POST /auth/accept-invite {token,password,full_name?} → {status,email}"],
+  states: ["Loading invitation…", "New account: name + password + confirm", "Existing account: current password only (B04 D8)", "Joined → link to log in (accept never logs in, B04 D10)", "400/409 → server message"],
+  notes: ["Email is read-only, from the invitation", "Role shown as a badge"],
+  stage: `<div class="grid4" style="gap:10px;align-items:start">
+    ${tile("New account", `<div style="position:relative">${pcard("Join B04 Live", `You were invited as ${pill("staff")}`, field("Email" + ci(1), "win1@b04live.test", { ro: true }) + field("Full name", "Win One") + field("Password", "", { hint: "At least 12 characters, with letters and numbers." }) + field("Confirm password") + btn("Create account and join", "pri full")).replace('class="pcard"', 'class="pcard" style="width:auto"')}</div>`)}
+    ${tile("Existing account", pcard("Join B04 Live", `You were invited as ${pill("manager")}`, `<div class="muted small" style="margin-bottom:6px">You already have an account. Confirm it with your current password.</div>` + field("Email", "bea@b04live.test", { ro: true }) + field("Your current password") + btn("Join organization", "pri full")).replace('class="pcard"', 'class="pcard" style="width:auto"'))}
+    ${tile("Joined", pcard("You joined B04 Live", "", `<div class="alert ok">Log in with win1@b04live.test to continue.</div>` + btn("Log in", "pri full")).replace('class="pcard"', 'class="pcard" style="width:auto"'))}
+    ${tile("Invalid / used link", pcard("Invitation not valid", "", `<div class="alert">This invitation link is invalid, expired or already used.</div>` + btn("Go to log in", "full")).replace('class="pcard"', 'class="pcard" style="width:auto"'))}
+  </div>
+  <div style="margin-top:14px">${tile("In the public layout", pub({ h: 290, url: "/accept-invite?token=…", card: `<div class="pcard"><h3>Join B04 Live</h3><div class="sub">You were invited as ${pill("staff")}</div><div class="ph" style="height:70px">form (see above)</div></div>` }))}</div>`
+}));
+
+/* 8 Post-login / no-org */
+P.push(page({
+  id: "S05", title: "Post-login + no organization", route: "/post-login?next= · /no-organization", status: "built", batch: "B09",
+  access: "Signed in",
+  api: ["GET /me → landing_path", "POST /auth/logout"],
+  states: ["Spinner only", "safe next (not another role's landing) → next", "landing_path → /home/&lt;role&gt; or /platform", "landing_path = null → /no-organization"],
+  notes: ["Sidebar shows Home only; top bar says “No organization”"],
+  stage: `<div style="display:grid;grid-template-columns:300px 1fr;gap:14px">
+    ${tile("/post-login", `<div class="frame" style="height:280px"><div class="chrome"><i></i><i></i><i></i><span>…/post-login?next=%2F</span></div><div class="devbar">${DEV}</div><div class="pubwrap"><div class="spinner"></div><span class="muted">Signing you in…</span></div></div>`)}
+    ${tile("/no-organization", `<div style="position:relative">${app({ role: "none", org: "No organization", user: "winunv1@b09.test", url: "/no-organization", h: 620, c: { side: ["Home", 1] }, content: `<div style="text-align:center;margin-top:70px"><div class="ic" style="width:24px;height:24px;border:2px solid var(--mid);border-radius:4px;margin:0 auto 8px"></div><div style="font-size:15px">You are not a member of an organization</div><div class="muted small" style="max-width:300px;margin:6px auto 10px">Your account (winunv1@b09.test) is not part of any organization yet. Ask an organization administrator to send you an invitation, then open the link in the email.</div>${btn("Log out")}</div>` })}</div>`)}
+  </div>`
+}));
+
+/* 9 Owner */
+const OWNER_CARDS = `<div class="grid2">
+  ${welcome("owner@b04live.test", "owner")}
+  ${card("Members" + ci(1), `<div class="row"><span class="big">13</span><span class="muted small">active</span></div>`)}
+  ${card("Pending invites" + ci(2), `<div class="muted small">2 pending</div><div class="row between small"><span>pscheck-…@b04live.test</span>${pill("staff")}</div><div class="row between small"><span>cli-check@b04live.test</span>${pill("user")}</div>`)}
+  ${fileList("Recent files" + ci(3))}
+  ${phCard("Recent activity", "Activity from business modules will show here.", "arrives in a business module")}
+  ${linkCard("Organization settings" + ci(4), "Name and display name of your organization.")}
+</div>`;
+P.push(page({
+  id: "S07", title: "Landing: owner", route: "/home/owner", status: "built", batch: "B09",
+  access: "Signed in, landing_path = /home/owner. Each card checks its own permission",
+  api: ["GET /me", "GET /users (users:read) → Members", "GET /invitations (users:invite) → Pending invites", "B05: GET /files?limit=5 → Recent files"],
+  states: ["Card skeleton while loading", "Card error: inline message", "403 email_not_verified → “Verify your email to see this”", "Wrong role path → replace with own landing"],
+  notes: ["Members count, live", "Pending invites, live", "Recent files: live since B10, 5 newest, click = download", "Organization settings: link (B10)"],
+  stage: `<div style="position:relative">${app({ url: "/home/owner", h: 680, content: `<div class="ptitle">Owner dashboard</div>${OWNER_CARDS}` })}
+    </div>`
+}));
+
+/* 10 Admin + manager */
+P.push(page({
+  id: "S07", title: "Landing: admin + manager", route: "/home/admin · /home/manager", status: "built", batch: "B09",
+  access: "Signed in; each card permission-gated",
+  api: ["GET /invitations (admin)", "GET /users (manager: team members, first 5 + “and N more”)", "B05: GET /files", "B07: POST /exports (Exports shortcut)"],
+  states: ["As owner: skeleton / error / not verified"],
+  notes: ["Manage users: link to /users (B10)", "Exports: links to the lists this user may export; the dialog is on each list (S13)"],
+  stage: `<div class="grid2" style="gap:12px">
+    ${tile("Admin", `<div style="position:relative">${app({ role: "admin", user: "admin@b04live.test", url: "/home/admin", h: 640, content: `<div class="ptitle">Admin dashboard</div><div class="grid2">${welcome("admin@b04live.test", "admin")}
+      ${card("Pending invites", `<div class="muted small">2 pending</div><div class="bar" style="margin:4px 0"></div><div class="bar"></div>`)}
+      ${fileList("Recent files")}
+      ${linkCard("Manage users" + ci(1), "Invite members, change roles, deactivate accounts.")}</div>` })}</div>`)}
+    ${tile("Manager", `<div style="position:relative">${app({ role: "manager", user: "manager@b04live.test", url: "/home/manager", h: 640, content: `<div class="ptitle">Manager dashboard</div><div class="grid2">${welcome("Live Manager", "manager")}
+      ${card("Team members", ["Live Admin|admin", "Bea Nine|user", "Bea Nine|user", "Bea Nine|user"].map(x => `<div class="row between small"><span>${x.split("|")[0]}</span>${pill(x.split("|")[1])}</div>`).join("") + `<div class="muted small">and 8 more</div>`)}
+      ${fileList("Recent files")}
+      ${card("Exports" + ci(2), `<div class="muted small">Open a list, filter it, then use Export for CSV or Excel.</div><div class="small" style="margin-top:5px"><span class="link">Files →</span> <span class="link">Users →</span> <span class="link">Items →</span></div>`)}</div>` })}</div>`)}
+  </div>`
+}));
+
+/* 11 Staff + user */
+const searchCard = (m = "") => card("Search" + m, `<div class="input">Search files and records…</div><div class="small muted" style="margin-top:5px">Enter → /search?q=…</div>`);
+P.push(page({
+  id: "S07", title: "Landing: staff + user", route: "/home/staff · /home/user", status: "built", batch: "B09",
+  access: "Signed in; cards gated by files:read / search:use",
+  api: ["GET /me", "B05: GET /files?mine=true (staff) · GET /files (user)", "B07: GET /search (on submit → /search?q=)"],
+  states: ["Search input live since B10", "Staff in b04live: no Organization entry (no org:read)"],
+  notes: ["Enter → /search?q=…", "User sees Organization (read-only) but not Users"],
+  stage: `<div class="grid2" style="gap:12px">
+    ${tile("Staff", `<div style="position:relative">${app({ role: "staff", user: "staff@b04live.test", url: "/home/staff", h: 640, content: `<div class="ptitle">Staff dashboard</div><div class="grid2">${welcome("staff@b04live.test", "staff")}
+      ${fileList("My recent files", [["mine.pdf", "11-20"], ["notes.txt", "11-19"]])}${searchCard(ci(1))}</div>` })}</div>`)}
+    ${tile("User", `<div style="position:relative">${app({ role: "user", user: "user@b04live.test", url: "/home/user", h: 640, c: { side: ["Organization", 2] }, content: `<div class="ptitle">User dashboard</div><div class="grid2">${welcome("user@b04live.test", "user")}
+      ${searchCard()}${card("Files", `<div style="font-size:20px;font-weight:600">42 <span class="small muted" style="font-weight:400">files</span></div><div class="small link" style="margin-top:5px">Browse files →</div>`)}</div>` })}</div>`)}
+  </div>`
+}));
+
+/* 12 Platform */
+P.push(page({
+  id: "S07", title: "Platform", route: "/platform", status: "built", batch: "B09",
+  access: "Platform admin only (no X-Tenant). Others → own landing",
+  api: ["GET /platform/stats", "GET /platform/orgs"],
+  states: ["Table skeleton", "Error inline", "No row actions yet (read-only)"],
+  notes: ["Status badge: active (dark) / failed (red) / suspended", "Phase 2 idea: row → org detail; not in scope"],
+  stage: `<div style="position:relative">${app({ role: "platform", active: "Platform", org: "Platform", user: "admin@platform.test", url: "/platform", h: 680, content: `<div class="ptitle">Platform</div>
+    ${card("Welcome, admin@platform.test", `<div class="muted small">Platform administration</div><div class="row small" style="margin-top:5px"><span class="muted">Signed in as admin@platform.test</span>${pill("platform admin", "dark")}</div>`)}
+    <div class="grid4" style="margin:8px 0">${[["6", "Organizations (5 active)"], ["25", "Active users"], ["25", "All users"], ["1", "Platform admins"]].map(s => `<div class="card"><span class="big">${s[0]}</span><div class="muted small">${s[1]}</div></div>`).join("")}</div>
+    ${card("Organizations", table(["Name", "Slug", "Status" + ci(1), "Plan", "Active members", "Created"], [
+      ["Acme Inc", "<span class=mono>acme</span>", pill("active", "dark"), "free", "0", "11/11/2026"],
+      ["Dup", "<span class=mono>b04dup</span>", pill("failed", "red"), "free", "0", "11/12/2026"],
+      ["B04 Live", "<span class=mono>b04live</span>", pill("active", "dark"), "free", "13", "11/12/2026"],
+      ["Beta Ltd", "<span class=mono>beta</span>", pill("active", "dark"), "free", "1", "11/11/2026"],
+      ["Delta", "<span class=mono>delta</span>", pill("active", "dark"), "free", "1", "11/12/2026"],
+      ["Gamma Co", "<span class=mono>gamma</span>", pill("active", "dark"), "free", "0", "11/12/2026"]], [4]))}` })}
+    </div>`
+}));
+
+/* 13 Files */
+const fileRows = [
+  ["Q3-report.pdf", "1.2 MB", "PDF", "Bea Nine", "2026-11-12"], ["logo.png", "84 KB", "Image", "Live Admin", "2026-11-12"],
+  ["contract-acme.docx", "220 KB", "Word", "owner@…", "2026-11-11"], ["prices.xlsx", "48 KB", "Excel", "Live Manager", "2026-11-10"],
+  ["notes.txt", "2 KB", "Text", "Bea Nine", "2026-11-09"]];
+P.push(page({
+  id: "S08", title: "Files", route: "/files?q=&type=&mine=&from=&to=&page=", status: "built", batch: "B10",
+  access: "files:read · Upload needs files:write · Delete needs files:delete",
+  api: ["GET /files (q, filters, pagination)", "POST /files/presign-upload → PUT to RustFS → POST /files/{id}/confirm", "GET /files/{id}/download-url (60 s)", "DELETE /files/{id} (soft)"],
+  states: ["Table skeleton", "Empty: “No files yet” + Upload prompt", "No results for the filters", "Upload: progress, error, too large / bad type", "Delete: confirm dialog → toast"],
+  notes: ["Filters live in the URL (shareable, survives reload); “Mine only” instead of an uploader list (B10 D4)", "Export button opens S13 (export:run)", "Upload dialog: drag and drop, several files, one bar each", "Row menu: Download · Delete"],
+  stage: `<div class="grid2" style="grid-template-columns:1.55fr 1fr;gap:12px">
+    <div style="position:relative">${app({ active: "Files", built: true, url: "/files", h: 680, bell: true, content: `<div class="ptitle">Files <span class="act row">${btn("Export")}${ci(2)}${btn("⬆ Upload", "pri")}</span></div>
+      <div class="row" style="margin-bottom:8px"><div class="input" style="flex:1">Search files…</div>${btn("Type ▾")}<span class="small">☐ Mine only</span>${btn("From")}${btn("To")}${ci(1)}</div>
+      ${table(["", "Name", "Size", "Type", "Uploaded by", "Date", ""], fileRows.map((r, i) => ["▢", r[0], r[1], r[2], r[3], r[4], i ? "⋯" : "⋯" + ci(4)]), [2])}
+      <div class="row between small" style="margin-top:8px"><span class="muted">1–5 of 42</span><span class="row">${btn("‹ Prev")}${btn("Next ›")}</span></div>` })}
+      </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${tile("Upload dialog", `<div class="card" style="border:1.5px solid var(--ink);position:relative"><div class="ct">Upload files${ci(3)}</div>
+        <div class="drop">Drag files here or <span class="link">browse</span><div class="small">max size and types from B05</div></div>
+        <div style="margin-top:8px" class="small">Q3-report.pdf <span class="muted">· 1.2 MB</span><div class="bar"><div class="bar w" style="width:70%;background:var(--ink)"></div></div></div>
+        <div style="margin-top:6px" class="small">huge.iso <span class="ferr" style="display:inline">· too large</span></div>
+        <div class="row" style="justify-content:flex-end;margin-top:8px">${btn("Cancel")}${btn("Done", "pri")}</div></div>`)}
+      ${tile("Delete confirm", `<div class="card" style="border:1.5px solid var(--ink)"><div class="ct">Delete “Q3-report.pdf”?</div><div class="muted small">It disappears from the list now; storage is cleaned up later.</div><div class="row" style="justify-content:flex-end;margin-top:8px">${btn("Cancel")}${btn("Delete", "danger")}</div></div>`)}
+      ${tile("Empty state", `<div class="card" style="text-align:center;padding:16px"><div class="muted">No files yet</div><div class="small muted" style="margin:4px 0 8px">Upload your first file to share it with your organization.</div>${btn("⬆ Upload", "pri")}</div>`)}
+    </div></div>`
+}));
+
+/* 14 Search */
+P.push(page({
+  id: "S09", title: "Search", route: "/search?q=&types=files,items&page=", status: "built", batch: "B10",
+  access: "search:use. Results only include types the user may read",
+  api: ["GET /search?q&types&page → [{type,id,title,snippet,score}]"],
+  states: ["Fewer than 2 characters: hint, no request", "Loading: skeleton rows", "No results: “Nothing found for …”", "Error inline", "Code-like query (mostly digits): exact match only"],
+  notes: ["Large input, autofocus; typing updates the URL after 300 ms", "Type chips toggle types (shown when 2+ types are readable)", "Plain-text snippet, words highlighted in the browser; file → download, item → detail"],
+  stage: `<div style="position:relative">${app({ active: "Search", url: "/search?q=report", h: 680, bell: true, content: `<div class="ptitle">Search</div>
+    <div class="row"><div class="input" style="height:30px;font-size:12px;color:var(--ink);flex:1">🔍 report</div>${ci(1)}</div>
+    <div class="row" style="margin:8px 0 10px">${btn("Files")}${btn("Items")}${ci(2)}</div>
+    <div class="flabel">FILES (3)</div>
+    ${["Q3-<mark>report</mark>.pdf", "<mark>report</mark>-template.docx", "old-<mark>report</mark>.pdf"].map((x, i) => `<div style="padding:5px 0;border-bottom:1px solid var(--fill)"><span class="link">📄 ${x}</span>${i ? "" : ci(3)}</div>`).join("")}
+    <div class="flabel" style="margin-top:10px">ITEMS (2)</div>
+    ${["Monthly <mark>report</mark> run|schedule the monthly <mark>report</mark> for the board", "<mark>Report</mark> fixes|fix the <mark>report</mark> layout"].map(x => `<div style="padding:5px 0;border-bottom:1px solid var(--fill)"><span class="link">${x.split("|")[0]}</span><div class="small muted">${x.split("|")[1]}</div></div>`).join("")}` })}
+    </div>`
+}));
+
+/* 15 Users */
+P.push(page({
+  id: "S10", title: "Users + invitations", route: "/users?tab=members|invitations&q=&page=", status: "built", batch: "B10",
+  access: "users:read · Invite: users:invite · Roles: roles:assign · (De)activate: users:deactivate",
+  api: ["GET /users (q, filters, pagination)", "POST /users/invite {email,role_key}", "PUT /users/{id}/roles {role_keys}", "POST /users/{id}/deactivate · /activate", "GET /invitations · DELETE /invitations/{id}", "GET /roles (role picker)"],
+  states: ["Skeleton / empty / error", "Invite: 409 already member or invited", "Roles: admin cannot grant owner; last owner cannot be removed (server message)", "Deactivate: confirm dialog"],
+  notes: ["Two tabs: Members · Pending invitations (count); no Role filter (B10 D2)", "Row menu: Change roles · Deactivate/Activate", "Invite dialog: email + one role", "Revoke on the invitations tab"],
+  stage: `<div class="grid2" style="grid-template-columns:1.55fr 1fr;gap:12px">
+    <div style="position:relative">${app({ active: "Users", built: true, url: "/users", h: 680, bell: true, content: `<div class="ptitle">Users <span class="act row">${btn("Export")}${btn("+ Invite", "pri")}</span></div>
+      <div class="tabs"><span class="on">Members (13)</span><span>Pending invitations (2)</span>${ci(1)}</div>
+      <div class="row" style="margin-bottom:8px"><div class="input" style="flex:1">Search name or email…</div>${btn("Status ▾")}</div>
+      ${table(["Name", "Email", "Roles", "Status", ""], [
+        ["Live Owner", "owner@b04live.test", pill("owner"), pill("active", "dark"), "⋯" + ci(2)], ["Live Admin", "admin@b04live.test", pill("admin"), pill("active", "dark"), "⋯"],
+        ["Live Manager", "manager@b04live.test", pill("manager"), pill("active", "dark"), "⋯"], ["Bea Nine", "bea@b04live.test", pill("user"), pill("active", "dark"), "⋯"],
+        ["Win One", "win1@b04live.test", pill("staff"), pill("inactive"), "⋯"]])}
+      <div class="row between small" style="margin-top:8px"><span class="muted">1–5 of 13</span><span class="row">${btn("‹ Prev")}${btn("Next ›")}</span></div>` })}
+      </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${tile("Invite dialog", `<div class="card" style="border:1.5px solid var(--ink);position:relative"><div class="ct">Invite a member${ci(3)}</div>${field("Email", "new@b04live.test")}<div class="field"><label>Role</label><div class="input">staff ▾</div></div><div class="row" style="justify-content:flex-end">${btn("Cancel")}${btn("Send invite", "pri")}</div></div>`)}
+      ${tile("Change roles", `<div class="card" style="border:1.5px solid var(--ink)"><div class="ct">Roles for Bea Nine</div>${["owner", "admin", "manager", "staff", "user"].map(r => `<div class="small">${r === "user" ? "☑" : "☐"} ${r}${r === "owner" ? ' <span class="muted">(owner only)</span>' : ""}</div>`).join("")}<div class="row" style="justify-content:flex-end;margin-top:6px">${btn("Cancel")}${btn("Save", "pri")}</div></div>`)}
+      ${tile("Pending invitations tab", `<div class="card" style="position:relative">${table(["Email", "Role", "Sent", ""], [["pscheck-…@b04live.test", pill("staff"), "11-12", btn("Revoke")], ["cli-check@b04live.test", pill("user"), "11-12", btn("Revoke") + ci(4)]])}</div>`)}
+    </div></div>`
+}));
+
+/* 16 Profile */
+P.push(page({
+  id: "S11", title: "Profile", route: "/settings/profile", status: "built", batch: "B10",
+  access: "Signed in (any role, also platform admin and no-org users)",
+  api: ["GET /me", "PATCH /me {full_name}", "POST /auth/change-password {current_password,new_password}"],
+  states: ["Save name: toast, top bar updates", "Wrong current password → message", "Password rules checked before sending (12+, letter, digit, match)", "Changed: other sessions signed out, this one stays"],
+  notes: ["Opened from the user menu (Profile), not the sidebar", "Email read-only", "Changing the password signs out the other devices only"],
+  stage: `<div style="position:relative">${app({ active: "", url: "/settings/profile", h: 680, bell: true, content: `<div class="ptitle">Profile</div>
+    <div style="max-width:420px">
+      ${card("Your details", field("Full name", "Live Owner") + field("Email", "owner@b04live.test", { ro: true, hint: "Your sign-in email cannot be changed here." + ci(2) }) + btn("Save name", "pri"))}
+      <div style="height:10px"></div>
+      ${card("Change password", `<div class="muted small" style="margin-bottom:6px">Changing it signs you out on your other devices and browsers; this session stays signed in.${ci(3)}</div>` + field("Current password") + field("New password", "", { hint: "At least 12 characters, with letters and numbers." }) + field("Confirm new password") + btn("Change password", "pri"))}
+    </div>
+    <div class="dialog" style="right:16px;top:44px;width:150px;padding:6px"><div class="small muted">owner@b04live.test</div><div class="nav on">Profile${ci(1)}</div><div class="nav">Theme ▸</div><div class="nav">Log out</div></div>` })}
+    </div>`
+}));
+
+/* 17 Org settings */
+P.push(page({
+  id: "S12", title: "Organization settings", route: "/settings/organization", status: "built", batch: "B10",
+  access: "org:read (view). Editing needs org:update (owner); without it the fields are read-only and Save is hidden",
+  api: ["GET /org", "PATCH /org {name, display_name}"],
+  states: ["Read-only variant (no org:update)", "Save → toast, top bar name refreshes; 422 → field errors", "Empty name refused before sending"],
+  notes: ["Slug read-only with a short explanation", "Read-only view for every role except owner"],
+  stage: `<div class="grid2" style="grid-template-columns:1.55fr 1fr;gap:12px">
+    <div style="position:relative">${app({ active: "Organization", url: "/settings/organization", h: 680, bell: true, content: `<div class="ptitle">Organization</div>
+      ${card("", field("Name", "B04 Live") + field("Display name", "B04 Live Ltd.", { hint: "Shown in emails and the top bar when set." }) + field("Slug" + ci(1), "b04live", { ro: true, hint: "Used in the X-Tenant header; cannot be changed." }) + btn("Save", "pri"))}` })}
+      </div>
+    ${tile("Read-only (manager, staff, user)", `<div style="position:relative">${card("" + ci(2), `<div class="muted small" style="margin-bottom:6px">Only the owner can change these settings.</div>` + field("Name", "B04 Live", { ro: true }) + field("Display name", "B04 Live Ltd.", { ro: true }) + field("Slug", "b04live", { ro: true }))}</div>`)}
+  </div>`
+}));
+
+/* 18 Exports */
+P.push(page({
+  id: "S13", title: "Exports dialog", route: "(dialog on Files, Users, Items lists)", status: "built", batch: "B10",
+  access: "export:run AND the list's read key (the Export button is hidden otherwise)",
+  api: ["POST /exports {resource, format, filters} → 202", "GET /exports/{id} (poll every 2 s until done/failed; fresh 60 s link on Download)", "GET /exports?page_size=5 (recent)"],
+  states: ["Choose format", "Preparing (queued / running)", "Ready: N rows → Download", "Failed → message, Export again", "Closing the dialog stops polling"],
+  notes: ["Sends the list's current search and filters (all pages)", "Download always fetches a fresh link, so it never expires on the user", "Recent exports: the user's last 5"],
+  stage: `<div style="position:relative">${app({ active: "Files", url: "/files?type=pdf", h: 680, bell: true, content: `<div class="ptitle">Files <span class="act row">${btn("Export")}${btn("⬆ Upload", "pri")}</span></div><div class="ph" style="height:520px">files table (S08)</div>` })}
+    <div class="dim" style="top:18px"></div>
+    <div class="dialog" style="left:120px;top:120px;width:300px"><div class="ct" style="font-weight:600;margin-bottom:4px">Export files</div>
+      <div class="small muted">Exports the rows that match your current search and filters (all pages).${ci(1)}</div>
+      <div class="field" style="margin-top:6px"><label>Format</label><div class="small">◉ CSV (opens in Excel)<br>○ Excel (XLSX)</div></div>
+      <div class="row" style="justify-content:flex-end">${btn("Close")}${btn("Export", "pri")}</div></div>
+    <div class="dialog" style="left:440px;top:120px;width:300px"><div class="ct" style="font-weight:600;margin-bottom:4px">Export files <span class="muted small" style="font-weight:400">(after Export)</span></div>
+      <div class="small muted">Preparing your file… (running)</div>
+      <div class="small" style="margin-top:6px">Ready: 42 rows, CSV.</div><div style="margin-top:4px">${btn("⬇ Download", "pri")}${ci(2)}</div>
+      <div class="flabel" style="margin-top:8px">Recent exports ${ci(3)}</div>
+      ${table(["", ""], [["files · CSV · 2026-11-20 09:19", "<span class=link>Download</span>"], ["users · XLSX · 2026-11-19 16:02", "<span class=link>Download</span>"], ["items · CSV · 2026-11-19 15:40", pill("failed")]])}
+      <div class="row" style="justify-content:flex-end;margin-top:6px">${btn("Close")}</div></div>
+    </div>`
+}));
+
+/* 19 Notifications */
+P.push(page({
+  id: "S14", title: "Notifications bell", route: "(top bar dropdown)", status: "built", batch: "B10",
+  access: "notifications:read (the bell is hidden without it, or without an organization)",
+  api: ["GET /notifications?unread=true&page_size=1 (count, every 30 s and on focus)", "GET /notifications?page_size=10 (when opened)", "POST /notifications/{id}/read", "POST /notifications/read-all"],
+  states: ["Badge hidden at 0; “99+” above 99", "Empty: “Nothing yet.”", "Click: mark read; an export-ready entry downloads the file"],
+  notes: ["Unread entries in bold", "Today only exports notify (ready / failed); other modules can call notify()", "“Mark all read” at the bottom"],
+  stage: `<div style="position:relative">${app({ url: "/home/manager", h: 680, bell: true, c: { bell: 1 }, content: `<div class="ptitle">Manager dashboard</div><div class="ph" style="height:540px">landing cards (S07)</div>` })}
+    <div class="dialog" style="right:120px;top:52px;width:280px;padding:8px">
+      <div style="margin-bottom:5px"><b>Notifications</b></div>
+      ${[["Your items export is ready", "4 rows, CSV. Download it from Exports within 7 days.", "2026-11-20 09:19", 1], ["Your users export failed", "120001 rows match, the limit is 100000; narrow the filters", "2026-11-19 16:02", 0], ["Your files export is ready", "42 rows, XLSX.", "2026-11-19 15:40", 0]].map(n => `<div style="padding:4px 2px;border-bottom:1px solid var(--fill)"><div class="small" style="${n[3] ? "font-weight:600" : ""}">${n[0]}</div><div class="small muted">${n[1]}</div><div class="small muted">${n[2]}</div></div>`).join("")}
+      <div class="small" style="margin-top:6px">✔ Mark all read${ci(2)}</div></div>
+    </div>`
+}));
+
+/* 20 Template items */
+P.push(page({
+  id: "S15", title: "Template items (example module)", route: "/items · /items/new · /items/{id}", status: "built", batch: "B11",
+  access: "items:read · create/edit: items:write · delete: items:delete",
+  api: ["GET /items (q, filters, pagination)", "POST /items · PATCH /items/{id} · DELETE /items/{id}", "GET /items/{id}", "POST /exports {resource:'items'}"],
+  states: ["List: skeleton / empty / no results", "Form: 422 mapped to fields; edit sends only changed fields", "Delete: confirm dialog → back to the list", "Detail: 404 → message + back link"],
+  notes: ["Config-driven template (src/modules/_template): list + search + filter + export", "Sidebar entry “Items” appears with items:read", "No history panel: audit stays a file (B10 D1)"],
+  stage: `<div class="grid2" style="grid-template-columns:1.4fr 1fr;gap:12px">
+    <div style="position:relative">${app({ active: "Items", built: true, url: "/items", h: 680, bell: true, c: { side: ["Items", 2] }, content: `<div class="ptitle">Items ${ci(1)}<span class="act row">${btn("Export")}${btn("+ New item", "pri")}</span></div>
+      <div class="row" style="margin-bottom:8px"><div class="input" style="flex:1">Search items…</div>${btn("Status ▾")}</div>
+      ${table(["Title", "Status", "Owner", "Updated", ""], [["Monthly report run", pill("open"), "Live Manager", "11-13", "⋯"], ["Report fixes", pill("done", "dark"), "Bea Nine", "11-12", "⋯"], ["Onboarding checklist", pill("open"), "Live Admin", "11-11", "⋯"], ["Price update", pill("in progress"), "owner@…", "11-10", "⋯"]])}
+      <div class="row between small" style="margin-top:8px"><span class="muted">1–4 of 4</span><span class="row">${btn("‹ Prev", "dis")}${btn("Next ›", "dis")}</span></div>` })}
+      </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${tile("Create / edit form (/items/new)", card("New item", field("Title", "Monthly report run") + `<div class="field"><label>Description</label><div class="input" style="height:44px"></div></div><div class="field"><label>Status</label><div class="input">open ▾</div></div><div class="row" style="justify-content:flex-end">${btn("Cancel")}${btn("Save", "pri")}</div>`))}
+      ${tile("Detail (/items/{id})", `<div style="position:relative">${card("Monthly report run", `<div class="row" style="margin-bottom:6px">${btn("Edit")}${btn("Delete", "danger")}${ci(3)}</div>${table(["", ""], [["Status", pill("open")], ["Owner", "Live Manager"], ["Created", "2026-11-13 09:12"], ["Description", "Schedule the monthly report…"]])}`)}</div>`)}
+    </div></div>`
+}));
+
+/* 21 Errors */
+P.push(page({
+  id: "S16", title: "Errors + session expired", route: "/403 · any unknown URL · any page", status: "built", batch: "B08",
+  access: "Anyone",
+  api: ["401 after a failed refresh → onSessionExpired"],
+  states: ["403: missing permission", "404: not-found.tsx", "Error boundary: error.tsx (reset) / global-error.tsx", "Session expired: toast + /login?next=", "Offline/network: “Cannot reach the server. Check your connection.” toast"],
+  notes: ["“Back to home” goes to the user's own landing page", "“Try again” calls reset() on the boundary"],
+  stage: `<div class="grid2" style="gap:12px">
+    ${tile("403", `<div style="position:relative">${app({ url: "/403", h: 300, content: `<div style="text-align:center;margin-top:40px"><div style="font-size:15px">You do not have access</div><div class="muted small" style="margin:6px 0 10px">Your role does not allow this page.</div>${btn("Back to home")}${ci(1)}</div>` })}</div>`)}
+    ${tile("404", app({ url: "/xyz", h: 300, content: `<div style="text-align:center;margin-top:40px"><div style="font-size:15px">Page not found</div><div class="muted small" style="margin:6px 0 10px">The page you are looking for does not exist.</div>${btn("Back to home")}</div>` }))}
+    ${tile("Error boundary", `<div style="position:relative">${app({ url: "/home/owner", h: 300, content: `<div style="text-align:center;margin-top:40px"><div style="font-size:15px">Something went wrong</div><div class="muted small" style="margin:6px 0 10px">Something went wrong. Please try again.</div>${btn("Try again", "pri")}${ci(2)}</div>` })}</div>`)}
+    ${tile("Session expired (toast, then redirect)", `<div style="position:relative">${pub({ h: 300, url: "/login?next=%2Fhome%2Fowner", card: pcard("Log in", "", field("Email") + btn("Log in", "pri full")) })}<div class="toast" style="bottom:14px">Your session has expired. Please log in again.</div></div>`)}
+  </div>`
+}));
+
+/* ---------- write out + page numbers ---------- */
+const T = P.length;
+document.getElementById("out").innerHTML = P.map((p, i) => p.replace("{{N}}", i + 1).replace("{{T}}", T)).join("");
+</script>
+</body>
+</html>

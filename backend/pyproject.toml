@@ -1,0 +1,73 @@
+[project]
+name = "core-saas-backend"
+version = "0.1.0"
+description = "Core SaaS scaffold - FastAPI backend and arq worker"
+requires-python = ">=3.12,<3.13"
+# Each batch adds its own dependencies (B00 design D8).
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.32,<1",   # [standard] brings watchfiles, also used by `arq --watch`
+    "arq>=0.26,<1",
+    "pydantic-settings>=2.6",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30",
+    "structlog>=24.4",
+    "redis>=5.2",
+    "aioboto3>=13.2",
+    "alembic>=1.14",
+    "argon2-cffi>=23.1",
+    "click>=8.1",
+    "pyjwt>=2.10",
+    "jinja2>=3.1",
+    "aiosmtplib>=3.0",
+    "openpyxl>=3.1",               # B07: XLSX exports (write-only mode streams rows)
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8,<1",
+    "pytest>=8.3,<9",
+    "httpx>=0.28,<1",               # FastAPI TestClient transport
+    "pytest-asyncio>=0.25",
+    "testcontainers[postgres,redis]>=4.9",
+    "pyright>=1.1.390",
+]
+
+[tool.uv]
+package = false                     # app is run from source, not installed as a wheel
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC"]
+ignore = ["S104"]                   # binding 0.0.0.0 is intended inside containers
+
+[tool.ruff.lint.per-file-ignores]
+"tests/perf/**" = ["S101", "S105", "S106", "S310", "S608"]  # local script: fixed URLs and constant SQL
+"tests/**" = ["S101", "S105", "S106"]  # asserts; fake credentials are test fixtures
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+# One event loop for the whole session so session-scoped async fixtures
+# (engine, containers) and tests share it.
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+markers = [
+    "integration: needs Docker (testcontainers); skip with -m 'not integration'",
+]
+# Third-party deprecations we cannot fix here (our own code must stay warning-free).
+filterwarnings = [
+    "ignore:The @wait_container_is_ready decorator is deprecated:DeprecationWarning:testcontainers",
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]
+
+[tool.pyright]
+include = ["app", "tests"]
+pythonVersion = "3.12"
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "standard"

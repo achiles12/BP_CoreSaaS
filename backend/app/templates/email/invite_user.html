@@ -1,0 +1,8 @@
+{% extends "_layout.html" %}
+{% block body %}
+<p>Hello,</p>
+<p>{% if inviter_name %}{{ inviter_name }} invited you{% else %}You have been invited{% endif %} to join <strong>{{ org_name }}</strong> on {{ app_name }} as <strong>{{ role_key }}</strong>.</p>
+<p><a href="{{ link }}" style="display:inline-block;padding:10px 18px;background:#18181b;color:#ffffff;text-decoration:none;border-radius:4px;">Accept invitation</a></p>
+<p style="font-size:13px;color:#52525b;">Or paste this link into your browser:<br>{{ link }}</p>
+<p style="font-size:13px;color:#52525b;">The invitation is valid for 7 days and can be used once.</p>
+{% endblock %}

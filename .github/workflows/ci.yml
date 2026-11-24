@@ -1,0 +1,118 @@
+# CI (B00 skeleton, B08 frontend, B12 e2e). Inactive until the project is a
+# git repo with a remote (B00 D4, B12 D1); `make ci` runs the same steps
+# locally. B13: audits; the stack migrates itself (init service).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  compose-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate docker-compose.yml with example env
+        run: cp .env.example .env && docker compose config -q
+
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.13.7"
+      - name: Install Python 3.12 and dependencies
+        run: uv python install 3.12 && uv sync --frozen
+      - name: Lint
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Test
+        run: uv run pytest -q
+      - name: pip-audit
+        run: |
+          uv export --frozen --no-dev --no-hashes -q > /tmp/req.txt
+          uvx pip-audit -r /tmp/req.txt --no-deps --disable-pip \
+            $(awk '!/^[[:space:]]*(#|$)/{print "--ignore-vuln", $1}' ../deploy/audit_ignore.txt)
+
+  # B08: frontend lint/type/format/test/build + generated-client drift check
+  # (same steps as `make fe-lint fe-test fe-build gen-client-check`, without Docker).
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "9.15.0"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.13.7"
+      - name: Install
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Lint, type-check, format-check
+        working-directory: frontend
+        run: pnpm lint && pnpm typecheck && pnpm format:check
+      - name: pnpm audit
+        working-directory: frontend
+        run: pnpm audit --audit-level high
+      - name: Unit tests
+        working-directory: frontend
+        run: pnpm test
+      - name: Generated client drift check
+        run: |
+          uv python install 3.12 && (cd backend && uv sync --frozen)
+          mkdir -p frontend/src/api/.gen-check
+          (cd backend && uv run python -m app.openapi_dump ../frontend/src/api/.gen-check/openapi.json)
+          (cd frontend && ORVAL_INPUT=./src/api/.gen-check/openapi.json ORVAL_OUTPUT=./src/api/.gen-check pnpm gen-client)
+          diff -q frontend/openapi.json frontend/src/api/.gen-check/openapi.json
+          diff -r frontend/src/api/generated/endpoints frontend/src/api/.gen-check/endpoints
+          diff -r frontend/src/api/generated/model frontend/src/api/.gen-check/model
+      - name: Build
+        working-directory: frontend
+        run: pnpm build
+
+  # B12: browser tests of the critical flows C1, C4, C5, C6 against the full
+  # compose stack (Postgres, Redis, RustFS, Mailpit, API, worker, frontend).
+  # .env.example points every URL at localhost, which is what the runner sees.
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      # The images run as UID 1000; the runner's checkout belongs to another UID.
+      - name: Let the containers write to the bind mounts
+        run: chmod -R a+rwX .
+      - name: Start the stack
+        run: cp .env.example .env && docker compose up -d --build --wait
+      - name: Warm up the frontend (first dev compile)
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://localhost:3200/login && exit 0
+            sleep 5
+          done
+          echo "frontend did not come up" && docker compose logs frontend && exit 1
+      - name: Playwright (C1, C4, C5, C6)
+        run: make e2e
+        env:
+          BASE: http://localhost:3200
+          MAILPIT: http://localhost:8025
+      - name: Upload the Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: frontend/tests/e2e/report
+          retention-days: 14
+      - name: Stack logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=200

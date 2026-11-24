@@ -1,0 +1,1 @@
+You are invited to join {{ org_name }} on {{ app_name }}

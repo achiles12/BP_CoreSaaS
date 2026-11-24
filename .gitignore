@@ -1,0 +1,45 @@
+# Secrets / local config
+.env
+.env.*
+!.env.example
+
+# Logs (keep the directory, not the content)
+logs/audit/*
+!logs/audit/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.pyright/
+
+# Node / Next.js
+node_modules/
+.next/
+coverage/
+playwright-report/
+test-results/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+frontend/src/api/.gen-check/
+frontend/tsconfig.tsbuildinfo
+frontend/.pnpm-store/
+frontend/tests/e2e/report/
+
+# Design-process files of the original project: kept on disk, not in the repo (B13 D11)
+/01_design/old_data/
+/03_summary/
+/04_todos/
+/05_stage*/
+/.claude/
+shots/
+
+
+# Local backups (deploy/README.md)
+/backup/

@@ -1,0 +1,3 @@
+# Accepted pip-audit findings, one per line: <ID> <reason>. Used by `make audit`.
+# Add one only when no fixed version exists. Frontend (pnpm) exceptions go in
+# frontend/package.json under pnpm.auditConfig.ignoreGhsas.

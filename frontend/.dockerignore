@@ -1,0 +1,6 @@
+node_modules
+.next
+.env*
+.pnpm-store
+coverage
+src/api/.gen-check
